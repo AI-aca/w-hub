@@ -1,0 +1,29 @@
+{
+  "name": "w-hub",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "vite --config web/vite.config.ts",
+    "build": "vite build --config web/vite.config.ts",
+    "typecheck": "tsc -p web/tsconfig.json",
+    "check:server": "cd supabase/functions/platform && deno check index.ts",
+    "test:server": "cd tests/server && deno test -A platform_test.ts",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
+    "bundle:function": "node tools/bundle-function.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "deno": "^2.9.6",
+    "esbuild": "^0.28.2",
+    "jose": "^6.2.18",
+    "lit-html": "^3.3.3",
+    "playwright": "^1.63.0",
+    "postgres": "^3.4.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  },
+  "private": true,
+  "type": "module"
+}

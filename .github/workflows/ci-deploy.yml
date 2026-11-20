@@ -1,0 +1,85 @@
+# 검사(타입·서버 시험·화면 시험) → 통과하면 GitHub Pages 배포
+name: 검사 및 배포
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5433"
+      PGUSER: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: 타입 검사(화면)
+        run: npm run typecheck
+      - name: 시험 DB 준비
+        run: |
+          psql -q -v ON_ERROR_STOP=1 -c "create role anon nologin; create role authenticated nologin;"
+          for f in supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -f "$f"; done
+          for f in supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -f "$f"; done   # 두 번 실행해도 안전한지
+      - name: 서버 함수 검사·시험
+        run: |
+          npx deno check supabase/functions/platform/index.ts
+          (cd supabase/functions/platform && npx deno lint)
+          (cd tests/server && npx deno test -A platform_test.ts && psql -q -c "drop schema core cascade;" && for f in ../../supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -f "$f"; done && npx deno test -A config_test.ts)
+      - name: 화면 시험
+        run: |
+          psql -q -c "drop schema core cascade;" && for f in supabase/migrations/*.sql; do psql -q -v ON_ERROR_STOP=1 -f "$f"; done
+          npx playwright install --with-deps chromium
+          (cd tests/local && nohup npx deno run -A serve.ts > /tmp/serve.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf -X POST localhost:8000/platform -H 'origin: http://localhost:5173' -d '{"action":"config"}' && break; sleep 1; done
+          npm run test:e2e
+      - if: failure()
+        run: cat /tmp/serve.log || true
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: 빌드
+        env:
+          VITE_API_URL: ${{ vars.WHUB_API_URL }}
+          VITE_SUPABASE_KEY: ${{ vars.WHUB_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          test -n "$VITE_API_URL" || { echo "저장소 변수 WHUB_API_URL 이 없습니다"; exit 1; }
+          npm run build
+          cp dist/index.html dist/404.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+      - id: deployment
+        uses: actions/deploy-pages@v4

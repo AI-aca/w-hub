@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true
+  },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-explicit-any"
+      ]
+    }
+  },
+  "nodeModulesDir": "none",
+  "imports": {
+    "postgres": "npm:postgres@3.4.7",
+    "jose": "npm:jose@6.1.0"
+  }
+}
