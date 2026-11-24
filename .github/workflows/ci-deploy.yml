@@ -50,11 +50,13 @@ jobs:
         run: |
           bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A api_test.ts)
           bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A config_test.ts)
+          bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A class_test.ts)
       - name: 옮겨 오기 시험
         env: { PGHOST: localhost }
         run: |
           (cd tools/migrate && npx deno check run.ts && npx deno lint)
           bash tests/local/db_reset.sh && (cd tests/migrate && npx deno test -A mock_users_test.ts)
+          bash tests/local/db_reset.sh && (cd tests/migrate && npx deno test -A weiz2028_test.ts)
       - name: 화면 시험
         env: { PGHOST: localhost }
         run: |

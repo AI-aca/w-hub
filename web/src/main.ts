@@ -13,9 +13,10 @@ import { layout, visibleMenus } from "./shell/layout";
 import { homeView, resetHome } from "./areas/home/view";
 import { studentsView } from "./areas/students/view";
 import { adminView } from "./areas/admin/view";
+import { classView } from "./areas/class/view";
 
 const root = document.getElementById("app")!;
-const VIEWS: Record<string, (app: App) => View> = { home: homeView, students: studentsView, admin: adminView };
+const VIEWS: Record<string, (app: App) => View> = { home: homeView, students: studentsView, class: classView, admin: adminView };
 const WS_KEY = "whub_ws";
 
 let clientId = "";

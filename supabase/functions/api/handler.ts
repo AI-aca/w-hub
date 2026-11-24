@@ -3,12 +3,16 @@
 import core from "./areas/core/actions.ts";
 import admin from "./areas/admin/actions.ts";
 import students from "./areas/students/actions.ts";
+import classSetup from "./areas/class/setup.ts";
+import classTimetable from "./areas/class/timetable.ts";
+import classPlan from "./areas/class/plan.ts";
+import classRoster from "./areas/class/roster.ts";
 import { type Action, type Ctx, runAction } from "./lib/registry.ts";
 import { Fail } from "./lib/util.ts";
 import { config } from "./lib/config.ts";
 
 const ACTIONS = new Map<string, Action>();
-for (const a of [...core, ...admin, ...students]) {
+for (const a of [...core, ...admin, ...students, ...classSetup, ...classTimetable, ...classPlan, ...classRoster]) {
   if (ACTIONS.has(a.name)) throw new Error(`액션 이름 중복: ${a.name}`);
   ACTIONS.set(a.name, a);
 }

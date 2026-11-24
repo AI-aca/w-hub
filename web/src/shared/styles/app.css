@@ -206,3 +206,28 @@ table.t th .sort-ar{color:var(--brand)}
 .kv dt{color:var(--mute)} .kv dd{margin:0}
 .loading{padding:40px;text-align:center;color:var(--mute)}
 .btn{text-decoration:none}
+/* 수업(주말반) */
+table.g td.click,table.g th.click{cursor:pointer}
+table.g td.click:hover{background:#fffbea}
+table.tt td{height:auto;padding:6px 8px;vertical-align:top}
+.ttc{display:flex;flex-direction:column;gap:1px;line-height:1.3}
+.ttc small{color:var(--mute);font-size:11.5px}
+table.g tr.hol td{background:#fff5f5}
+table.g td.holnote{color:var(--bad);font-weight:700;text-align:center}
+table.g tr.past td{color:var(--mute)}
+.star{border:0;background:transparent;color:#d1d5db;font-size:15px;line-height:1;padding:2px 4px;cursor:pointer}
+.star.on{color:#f59e0b}
+.star:disabled{cursor:default}
+table.plan td.txt{padding:0;position:relative;vertical-align:top;height:auto}
+table.plan td.txt textarea{display:block;width:100%;min-height:58px;border:0;resize:vertical;padding:7px 22px 7px 8px;font:inherit;font-size:12.5px;line-height:1.45;background:transparent;outline:0}
+table.plan td.txt textarea:focus{background:#fffbea;box-shadow:inset 0 0 0 2px #f59e0b}
+table.plan td.txt .star{position:absolute;top:3px;right:2px}
+table.plan td.txt.imp{background:#fff7e6}
+table.plan td.txt.saving{background:#fffbea}
+.cellta{width:100%;border:1px solid transparent;border-radius:6px;padding:5px 7px;font:inherit;resize:vertical;background:transparent}
+.cellta:focus,.cellin:focus{border-color:var(--brand);outline:0;background:#fff}
+.cellin{width:100%;height:calc(var(--row) - 1px);border:0;padding:0 8px;background:transparent;font:inherit}
+.sumbar{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:8px 12px;gap:14px}
+.sumbar b{color:var(--ok)}
+table.roster td{white-space:nowrap}
+.ttc .nth{font-weight:500;color:var(--mute);font-size:11.5px}

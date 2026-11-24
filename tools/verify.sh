@@ -13,10 +13,14 @@ bash tests/local/db_reset.sh
 (cd tests/server && npx deno test -A -q api_test.ts)
 bash tests/local/db_reset.sh
 (cd tests/server && npx deno test -A -q config_test.ts)
+bash tests/local/db_reset.sh
+(cd tests/server && npx deno test -A -q class_test.ts)
 echo "== 3-2. 옮겨 오기 시험"
 (cd tools/migrate && npx deno check run.ts && npx deno lint -q)
 bash tests/local/db_reset.sh
 (cd tests/migrate && npx deno test -A -q mock_users_test.ts)
+bash tests/local/db_reset.sh
+(cd tests/migrate && npx deno test -A -q weiz2028_test.ts)
 echo "== 4. 화면 시험"
 bash tests/local/db_reset.sh
 (cd tests/local && nohup npx deno run -A serve.ts > /tmp/whub-serve.log 2>&1 &) 

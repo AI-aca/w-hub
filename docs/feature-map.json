@@ -96,7 +96,9 @@
    "area": "admin",
    "does": "강사 저장",
    "from": [
-    "2028win instructors upsert"
+    "2028win + 강사 추가",
+    "2028win instructors upsert",
+    "2028win upsert(강사)"
    ]
   },
   {
@@ -139,6 +141,138 @@
    "does": "학생 보관·복원",
    "from": [
     "생기부 진단 archiveStudent/restoreStudent/deleteStudent"
+   ]
+  },
+  {
+   "action": "classMeta",
+   "area": "class",
+   "does": "과정·학기·과목·반·강사 읽기",
+   "from": [
+    "2028win load(과목·학급 목록, 강사)"
+   ]
+  },
+  {
+   "action": "classSetup",
+   "area": "class",
+   "does": "과정·학기·과목·반 만들기·고치기·숨기기",
+   "from": [
+    "2028win 과목 관리",
+    "2028win 학급 관리",
+    "2028win saveUISettings(managed_subjects·managed_classes)"
+   ]
+  },
+  {
+   "action": "classTerm",
+   "area": "class",
+   "does": "학기 자료 한 번에 읽기(시간표·진도·업무 일정)",
+   "from": [
+    "2028win load"
+   ]
+  },
+  {
+   "action": "slotSave",
+   "area": "class",
+   "does": "시간표 요약(요일 틀) 저장",
+   "from": [
+    "2028win upsert(시간표 요약)",
+    "2028win + 요일 추가",
+    "2028win + 시간 추가"
+   ]
+  },
+  {
+   "action": "slotDelete",
+   "area": "class",
+   "does": "시간표 요약 줄 삭제",
+   "from": [
+    "2028win delete(시간표)"
+   ]
+  },
+  {
+   "action": "sessionSave",
+   "area": "class",
+   "does": "시간표 상세(날짜별 회차)·휴강 저장",
+   "from": [
+    "2028win upsert(시간표 상세)",
+    "2028win + 휴일 추가",
+    "2028win 시간표 편집 창"
+   ]
+  },
+  {
+   "action": "sessionDelete",
+   "area": "class",
+   "does": "시간표 상세 줄 삭제",
+   "from": [
+    "2028win delete(시간표)",
+    "2028win deleteMultipleData"
+   ]
+  },
+  {
+   "action": "sessionsFromSlots",
+   "area": "class",
+   "does": "주차 일괄 생성(요약 → 날짜별 회차)",
+   "from": [
+    "2028win 복사 생성하기(시간표 상세 주차 일괄 복사/생성)",
+    "2028win + 템플릿 복사 생성"
+   ]
+  },
+  {
+   "action": "weekSave",
+   "area": "class",
+   "does": "진도 주차 추가·이름·삭제",
+   "from": [
+    "2028win + 주차 추가",
+    "2028win 열/줄 삭제(진도)"
+   ]
+  },
+  {
+   "action": "currSave",
+   "area": "class",
+   "does": "진도 칸 저장(자동 저장)",
+   "from": [
+    "2028win upsert(진도 수학/과학)"
+   ]
+  },
+  {
+   "action": "eventSave",
+   "area": "class",
+   "does": "업무 일정 저장·상태·삭제",
+   "from": [
+    "2028win upsertPreSchedule",
+    "2028win 업무 상태 전환",
+    "2028win + 내용 추가"
+   ]
+  },
+  {
+   "action": "rosterList",
+   "area": "class",
+   "does": "수강생 목록",
+   "from": [
+    "2028win load(학생)"
+   ]
+  },
+  {
+   "action": "rosterCandidates",
+   "area": "class",
+   "does": "명부에서 수강생 고르기",
+   "from": [
+    "새 기능"
+   ]
+  },
+  {
+   "action": "rosterAdd",
+   "area": "class",
+   "does": "수강생 추가",
+   "from": [
+    "2028win + 학생 추가"
+   ]
+  },
+  {
+   "action": "rosterSave",
+   "area": "class",
+   "does": "수강생 반·반편성 점수(총점 자동)·메모",
+   "from": [
+    "2028win upsert(학생)",
+    "2028win 총점 자동 계산"
    ]
   }
  ],
@@ -1922,13 +2056,13 @@
    "site": "2028 영재학교반",
    "feature": "기능:delete",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "기능:load",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
@@ -1947,139 +2081,139 @@
    "site": "2028 영재학교반",
    "feature": "기능:upsert",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "기능:status",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 강사 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 과목 관리",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 내용 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 시간 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 요일 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 주차 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 템플릿 복사 생성",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 학급 관리",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 학생 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:+ 휴일 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:복사 생성하기",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:새 과목 등록하기",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:접속하기",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:2028 영재학교전원 합격!",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:… 수업 편집",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:대시보드",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:새 항목 추가",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:시간표 상세 주차 일괄 복사/생성",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:중앙 과목 리스트 관리",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:학급 리스트 관리",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:환영합니다!",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2027 과학고",
@@ -3885,73 +4019,73 @@
    "site": "2028 영재학교반",
    "feature": "화면:타임테이블(업무 일정) — 날짜·내용·상태·비고",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:시간표 요약",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:시간표 상세",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:진도 수학",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:진도 과학",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:학생",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "화면:강사",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:학기 전환 [1차] 26년 8~12월 / [2차] 27년 1~7월(화면별)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "버튼:홈(대시보드로)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:업무 상태 클릭 전환(🟡 진행 중 ↔ 🟢 완료)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:칸 직접 편집 → 벗어나면 자동 저장",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:저장 상태 표시(저장 중·완료·실패 건수)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
@@ -3963,37 +4097,37 @@
    "site": "2028 영재학교반",
    "feature": "동작:붙여넣기 시 서식 제거",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:학생 표 머리글 클릭 정렬(학급·대수·기하·조합·총점)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:정렬 중 줄 추가 시 맨 뒤에 추가 안내",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:학생 총점 = 대수+기하+조합 자동 계산(총점 칸 직접 입력 막음)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:학생 요약 막대 — 인원 정보(총·학급별·미배정) / 점수 정보(총점·대수·기하·조합 평균) 선택",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:전화번호 자동 형식(010-0000-0000)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
@@ -4017,13 +4151,13 @@
    "site": "2028 영재학교반",
    "feature": "동작:우클릭 메뉴 — 줄 삭제(확인)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:우클릭 메뉴 — 열 삭제(확인, 저장된 데이터도 삭제)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
@@ -4047,109 +4181,109 @@
    "site": "2028 영재학교반",
    "feature": "동작:칸 배경색(파랑·빨강·노랑·초록·지우기) → W-HUB는 '중요 표시'로 대체",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:진도 보기 전환 — 과목별 보기 / 학급별 보기 + 대상 선택",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:진도 표 열(반·과목) 추가·삭제, 숨긴 열 기억",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 열 추가·삭제",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 주차 이름 편집(다른 줄 이름도 같이 변경)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 날짜 표시 편집(서식 포함)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 반 이름 편집(반이름 입력 창)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 휴일 줄 입력",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 날짜 선택기(칸 더블클릭)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 요일 선택기",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 시작·끝 시간 선택기",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:시간표 편집 창(수업 편집) 저장",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:강사 선택 창",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:학급 선택 창(여러 반 선택)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:과목 관리 — 비밀번호 확인, 수학/과학 구분, 등록·삭제(확인)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:학급 관리 — 비밀번호 확인, 추가(중복 막음)·삭제(확인)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:주차 일괄 복사 생성 — 요약 일정 기준, 주차 번호·요일별 날짜 입력, 건수 안내",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "동작:여러 줄 한꺼번에 삭제(열 삭제 시)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
@@ -4167,19 +4301,19 @@
    "site": "2028 영재학교반",
    "feature": "기능:saveUISettings(열 너비·숨긴 열·과목·학급 목록·서식 등 화면 설정)",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "기능:upsertPreSchedule",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "2028 영재학교반",
    "feature": "기능:deleteMultipleData",
    "to": "수업 / 일정",
-   "status": "예정"
+   "status": "완료"
   },
   {
    "site": "연세 온라인 진단",
