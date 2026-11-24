@@ -64,8 +64,7 @@ test("선생님: 와이즈만만 보이고, 담당 센터 학생만 등록", asy
   await shot(page, "06_선생님_홈");
   await menu(page).getByRole("link", { name: "학생" }).click();
   await page.getByRole("link", { name: "+ 학생 등록" }).click();
-  const centers = await page.locator('select[name="center_id"] option').allTextContents();
-  expect(centers).toEqual(["송도"]);
+  await expect(page.locator('select[name="center_id"] option')).toHaveText(["송도"]);
   await page.locator('input[name="name"]').fill("홍길동");
   await page.locator('input[name="school_name"]').fill("송도고");
   await page.locator('input[name="entry_year"]').fill("2026");
