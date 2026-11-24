@@ -1,15 +1,16 @@
 {
   "name": "w-hub",
   "version": "1.0.0",
-  "description": "",
+  "description": "W-HUB 와이즈만·연세국제 선생님용 통합 사이트",
   "scripts": {
     "dev": "vite --config web/vite.config.ts",
     "build": "vite build --config web/vite.config.ts",
     "typecheck": "tsc -p web/tsconfig.json",
-    "check:server": "cd supabase/functions/platform && deno check index.ts",
-    "test:server": "cd tests/server && deno test -A platform_test.ts",
+    "check": "node tools/arch-check.mjs --self && node tools/arch-check.mjs",
+    "check:server": "cd supabase/functions/api && deno check index.ts && deno lint",
+    "test:server": "bash tests/local/db_reset.sh && cd tests/server && deno test -A api_test.ts",
     "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
-    "bundle:function": "node tools/bundle-function.mjs"
+    "verify": "bash tools/verify.sh"
   },
   "author": "",
   "license": "ISC",

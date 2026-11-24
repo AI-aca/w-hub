@@ -1,4 +1,4 @@
-// 로컬 시험 서버: 가짜 구글(:8099, /certs · /sign) + 서버 함수(:8000/platform)
+// 로컬 시험 서버: 가짜 구글(:8099, /certs · /sign) + 서버 함수(:8000/api)
 import { googleToken, serveJwks, TEST_CLIENT_ID, TEST_ISSUER } from "../server/fake_google.ts";
 
 Deno.env.set("SUPABASE_DB_URL", Deno.env.get("SUPABASE_DB_URL") ?? "postgres://postgres@localhost:5433/postgres");
@@ -21,5 +21,5 @@ Deno.serve({ port: 8099, onListen: () => {} }, async (req) => {
 });
 void jwks;
 
-const { handle } = await import("../../supabase/functions/platform/handler.ts");
-Deno.serve({ port: 8000, onListen: () => console.log("platform :8000 ready") }, (req) => handle(req));
+const { handle } = await import("../../supabase/functions/api/handler.ts");
+Deno.serve({ port: 8000, onListen: () => console.log("api :8000 ready") }, (req) => handle(req));
