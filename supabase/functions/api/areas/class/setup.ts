@@ -39,7 +39,7 @@ async function removeOrHide(tx: Tx, kind: "subject" | "class", id: number): Prom
 
 export default [
   defineAction({
-    name: "classMeta", who: { area: "class", need: "viewer" },
+    name: "classMeta", who: { area: ["class", "scores_weekly"], need: "viewer" },
     run: async ({ tx, ws }) => await meta(tx, ws),
   }),
 

@@ -5,8 +5,8 @@ export interface MenuDef { key: string; name: string; areas: string[] }
 export const MENUS: MenuDef[] = [
   { key: "home", name: "홈", areas: [] },
   { key: "students", name: "학생", areas: ["students"] },
-  { key: "scores", name: "성적", areas: ["scores_mock", "scores_naesin", "scores_weekly", "scores_diag"] },
-  { key: "class", name: "수업", areas: ["class"] },
+  { key: "scores", name: "성적", areas: ["scores_mock", "scores_naesin", "scores_diag"] },
+  { key: "class", name: "수업", areas: ["class", "scores_weekly"] }, // 주말반 성적·평가는 수업 메뉴 안
   { key: "admission", name: "입시", areas: ["admission"] },
   { key: "analysis", name: "분석", areas: ["analysis"] },
   { key: "bank", name: "문제은행", areas: ["bank"] },

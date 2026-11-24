@@ -47,3 +47,15 @@ export function ymdDate(v: unknown): string {
 export function sameVer(dbVer: number, sent: unknown): void {
   if (Number(sent) !== Number(dbVer)) fail("다른 사람이 먼저 고쳤습니다. 새로 불러온 뒤 다시 하세요.", 409, "conflict");
 }
+
+/** 회차 칸(회차 × 반) → 학기·과정 (작업공간 확인 포함) */
+export async function cellOf(tx: Tx, ws: string, sessionId: unknown, classId: unknown) {
+  const sid = Number(sessionId), cid = Number(classId);
+  if (!Number.isInteger(sid) || !Number.isInteger(cid)) fail("회차와 반을 고르세요.");
+  const [c] = await tx`select s.id::int as session_id, c.class_id::int as class_id, s.term_id::int as term_id, t.course_id::int as course_id
+                       from class.session_cells c join class.sessions s on s.id = c.session_id join class.terms t on t.id = s.term_id
+                       join class.courses co on co.id = t.course_id
+                       where c.session_id = ${sid} and c.class_id = ${cid} and co.workspace_id = ${ws}`;
+  if (!c) fail("없는 회차 칸입니다.", 404, "not_found");
+  return c as { session_id: number; class_id: number; term_id: number; course_id: number };
+}

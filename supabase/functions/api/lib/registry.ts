@@ -2,7 +2,7 @@
 //   who: "public"  로그인 없이(설정·로그인)
 //        "user"    로그인한 승인 계정
 //        "owner"   원장만(계정·권한·로그·명부 관리)
-//        { area, need }  작업공간(body.ws)의 그 영역에 need 이상 권한
+//        { area, need }  작업공간(body.ws)의 그 영역에 need 이상 권한(area 가 배열이면 그중 하나)
 import type { Tx } from "./db.ts";
 import { db } from "./db.ts";
 import { type Me, requireOwner, requireUser } from "./auth.ts";
@@ -11,7 +11,7 @@ import { fail, str } from "./util.ts";
 
 export interface Ctx { ip: string; ua: string }
 export type Body = Record<string, unknown>;
-export type Who = "public" | "user" | "owner" | { area: string; need: Need };
+export type Who = "public" | "user" | "owner" | { area: string | string[]; need: Need };
 
 export interface Run {
   tx: Tx;

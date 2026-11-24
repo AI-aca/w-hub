@@ -2,6 +2,7 @@
 import { html, nothing, type TemplateResult } from "lit-html";
 import { ADMIN_MENU, MENUS, type MenuDef } from "../shared/core/menu";
 import { href } from "../shared/core/route";
+import { icon } from "../shared/ui/icons";
 import type { App, View } from "./app";
 
 /** 이 사람이 이 작업공간에서 볼 수 있는 메뉴 */
@@ -14,6 +15,14 @@ export function visibleMenus(app: App): MenuDef[] {
 }
 
 let popOpen = false;
+// 왼쪽 메뉴 접기: 접으면 아이콘만 남는다. 브라우저에 기억(다음에 열어도 그대로).
+const MINI_KEY = "whub.sideMini";
+let mini = (() => { try { return localStorage.getItem(MINI_KEY) === "1"; } catch { return false; } })();
+function toggleMini(app: App): void {
+  mini = !mini;
+  try { localStorage.setItem(MINI_KEY, mini ? "1" : "0"); } catch { /* 저장 불가 브라우저 */ }
+  app.redraw();
+}
 
 export function layout(app: App, view: View, onLogout: () => void): TemplateResult {
   const menus = visibleMenus(app);
@@ -36,7 +45,10 @@ export function layout(app: App, view: View, onLogout: () => void): TemplateResu
     </div>
   </header>
   <div class="body">
-    ${view.side ? html`<aside class="side">${view.side}</aside>` : nothing}
+    ${view.side ? html`<aside class="side ${mini ? "mini" : ""}">
+      <div class="s0"><button class="tog" @click=${() => toggleMini(app)} title=${mini ? "메뉴 펼치기" : "메뉴 접기"}
+        aria-label=${mini ? "메뉴 펼치기" : "메뉴 접기"} aria-expanded=${!mini}>${icon("panel")}</button></div>
+      ${view.side}</aside>` : nothing}
     <main class="main">${view.main}</main>
   </div>`;
 }

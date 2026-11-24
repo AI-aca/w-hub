@@ -19,8 +19,8 @@ ms as (select e.value as s, e.ordinality as o from ui, jsonb_array_elements(ui.v
 mc as (select e.value #>> '{}' as name, e.ordinality as o from ui, jsonb_array_elements(ui.value::jsonb) with ordinality e where ui.key = 'managed_classes'),
 tt as (select *, split_part(type, '|', 1) as kind, coalesce(nullif(split_part(type, '|', 2), ''), id) as grp from weiz2028.timetables),
 r as (
-  select jsonb_build_object('t', 'term', 'term', 1, 'name', '[1차] 26년 8~12월') as j
-  union all select jsonb_build_object('t', 'term', 'term', 2, 'name', '[2차] 27년 1~7월')
+  select jsonb_build_object('t', 'term', 'term', 1, 'name', '[1차] 26년 8~12월', 'from', '2026-08-01', 'to', '2026-12-31') as j
+  union all select jsonb_build_object('t', 'term', 'term', 2, 'name', '[2차] 27년 1~7월', 'from', '2027-01-01', 'to', '2027-07-31')
   union all select jsonb_build_object('t', 'subject', 'name', s->>'name', 'category', case when s->>'category' in ('수학','과학') then s->>'category' else '기타' end,
                                       'emoji', coalesce(s->>'emoji', ''), 'sort', o) from ms
   union all select jsonb_build_object('t', 'subject', 'name', x.subject, 'category', x.cat, 'emoji', '', 'sort', 100)
@@ -78,7 +78,8 @@ begin
   insert into class.courses (workspace_id, name) values (ws, '2028 영재학교반') on conflict (workspace_id, name) do nothing;
   select id into cid from class.courses where workspace_id = ws and name = '2028 영재학교반';
   for x in select r from _in, jsonb_array_elements(d->'rows') r where r->>'t' = 'term' loop
-    insert into class.terms (course_id, name, sort) values (cid, x->>'name', (x->>'term')::int) on conflict (course_id, name) do nothing;
+    insert into class.terms (course_id, name, sort, starts_on, ends_on) values (cid, x->>'name', (x->>'term')::int, (x->>'from')::date, (x->>'to')::date)
+      on conflict (course_id, name) do nothing;
     select id into tid from class.terms where course_id = cid and name = x->>'name';
     terms := terms || jsonb_build_object(x->>'term', tid);
     fresh := fresh || jsonb_build_object(x->>'term', not exists (select 1 from class.sessions where term_id = tid)

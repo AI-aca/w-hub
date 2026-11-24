@@ -37,6 +37,18 @@ input,select{font:inherit}
 .side .s1{padding:14px 14px 10px;border-bottom:1px solid var(--line2);display:flex;flex-direction:column;gap:8px}
 .side .s2{flex:1;overflow:auto;padding:8px}
 .side .s3{border-top:1px solid var(--line2);padding:10px;display:flex;flex-direction:column;gap:6px}
+/* 왼쪽 메뉴 접기(아이콘만) */
+.side{transition:width .15s ease}
+.side .s0{display:flex;justify-content:flex-end;padding:6px 8px 0}
+.side .tog{border:0;background:transparent;color:var(--mute);width:32px;height:32px;border-radius:8px;display:grid;place-items:center}
+.side .tog:hover{background:#f1f2f4;color:var(--ink2)}
+.ic{width:18px;height:18px;flex:none}
+.side.mini{width:58px}
+.side.mini .s0{justify-content:center;padding:6px 0 0}
+.side.mini .s1,.side.mini .s3,.side.mini .grp,.side.mini .s2>:not(.nav){display:none}
+.side.mini .s2{padding:6px 8px}
+.side.mini .item.nav{justify-content:center;padding:9px 0}
+.side.mini .item.nav .tx,.side.mini .item.nav small{display:none}
 .lab{font-size:11.5px;color:var(--mute);font-weight:600;margin:2px 2px 0}
 .seg{display:flex;background:#f1f2f4;border-radius:9px;padding:3px;gap:2px}
 .seg button{flex:1;border:0;background:transparent;border-radius:7px;padding:6px 4px;font-size:12px;font-weight:600;color:var(--ink2)}
@@ -231,3 +243,19 @@ table.plan td.txt.saving{background:#fffbea}
 .sumbar b{color:var(--ok)}
 table.roster td{white-space:nowrap}
 .ttc .nth{font-weight:500;color:var(--mute);font-size:11.5px}
+/* 수업 › 평가 */
+.pickbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.pickbar .seg{flex:none}
+.pickbar .seg button{flex:none;padding:6px 12px}
+table.g.wk td.inp{width:64px}
+table.g.wk td.inp.sel3 select{width:100%;height:calc(var(--row) - 1px);border:0;background:transparent;text-align:center;outline:0}
+table.g.wk td.inp.sel3 select:focus{background:#fffbea;box-shadow:inset 0 0 0 2px #f59e0b}
+table.g.wk td.inp input:disabled,table.g.wk td.inp select:disabled{color:var(--ink2);opacity:1}
+table.g.wk tr.abs td{background:#fdf2f2}
+table.g.st .stc{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 8px;font-weight:700;min-width:56px;font-variant-numeric:tabular-nums;color:var(--mute)}
+table.g.st .stc.ok{background:var(--ok-soft);border-color:#bfe5cd;color:var(--ok)}
+table.g.st .stc.part{background:var(--warn-soft);border-color:#f6d9a6;color:var(--warn)}
+table.g.st .stc.none{background:var(--bad-soft);border-color:#f3c4c6;color:var(--bad)}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.rl{display:flex;flex-wrap:wrap;gap:10px 18px}
+.rl label{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink2)}

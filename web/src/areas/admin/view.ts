@@ -5,6 +5,7 @@ import { href } from "../../shared/core/route";
 import type { AreaDef, Center, Role, Workspace } from "../../shared/core/types";
 import { ROLE_KO } from "../../shared/core/types";
 import { ask, errMsg, openDialog, toast, ymdhm } from "../../shared/ui/ui";
+import { navItem } from "../../shared/ui/icons";
 import { type Col, table, type TableState } from "../../shared/ui/table";
 import type { App, View } from "../../shell/app";
 import { head } from "../../shell/layout";
@@ -27,10 +28,10 @@ const loadLogs = async (app: App) => { try { S.logs = await api("logList", { q: 
 
 export function adminView(app: App): View {
   const sub = app.route.parts[0] ?? "users";
-  const items = [["users", "계정·권한"], ["org", "센터·학교·강사"], ["logs", "변경 기록"]];
+  const items = [["users", "계정·권한", "shield"], ["org", "센터·학교·강사", "building"], ["logs", "변경 기록", "history"]];
+  const pending = S.users?.users.filter((u) => u.status === "pending").length || "";
   const side = html`<div class="s1"><div class="lab">관리</div><div class="note">원장 계정만 보입니다.</div></div>
-    <div class="s2">${items.map(([k, n]) => html`<a class="item ${k === sub ? "on" : ""}" href=${href(app.ws, "admin", k)}>${n}
-      ${k === "users" && S.users ? html`<small>${S.users.users.filter((u) => u.status === "pending").length || ""}</small>` : nothing}</a>`)}</div>`;
+    <div class="s2">${items.map(([k, n, ic]) => navItem({ href: href(app.ws, "admin", k), label: n, icon: ic, on: k === sub, badge: k === "users" ? pending : "" }))}</div>`;
   let main: TemplateResult;
   if (sub === "org") {
     if (S.orgWs !== app.ws) { S.org = null; void loadOrg(app); }

@@ -28,11 +28,13 @@ export async function accessMap(tx: Tx, me: Me): Promise<AccessMap> {
   return map;
 }
 
-/** 영역 권한 검사: 단계가 충분한지. 센터 범위는 돌려받은 center_ids 로 각 액션이 거른다. */
-export async function requireArea(tx: Tx, me: Me, ws: string, area: string, need: Need): Promise<AreaAccess> {
-  const a = (await accessMap(tx, me))[ws]?.[area];
-  if (!a) fail("이 영역을 쓸 권한이 없습니다.", 403, "forbidden");
-  if (ROLE_RANK[a!.role] < ROLE_RANK[need]) fail("이 작업을 할 권한이 없습니다.", 403, "forbidden");
+/** 영역 권한 검사: 단계가 충분한지. 영역을 여럿 주면 그중 하나라도 되면 통과. 센터 범위는 돌려받은 center_ids 로 각 액션이 거른다. */
+export async function requireArea(tx: Tx, me: Me, ws: string, area: string | string[], need: Need): Promise<AreaAccess> {
+  const mine = (await accessMap(tx, me))[ws] ?? {};
+  const have = (Array.isArray(area) ? area : [area]).map((x) => mine[x]).filter((x): x is AreaAccess => !!x);
+  if (!have.length) fail("이 영역을 쓸 권한이 없습니다.", 403, "forbidden");
+  const a = have.find((x) => ROLE_RANK[x.role] >= ROLE_RANK[need]);
+  if (!a) fail("이 작업을 할 권한이 없습니다.", 403, "forbidden");
   return a!;
 }
 

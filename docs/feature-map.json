@@ -274,6 +274,62 @@
     "2028win upsert(학생)",
     "2028win 총점 자동 계산"
    ]
+  },
+  {
+   "action": "weeklySheet",
+   "area": "scores_weekly",
+   "does": "회차 칸 입력표(학생·기록) 읽기",
+   "from": [
+    "참고사이트 성적 입력"
+   ]
+  },
+  {
+   "action": "recordSave",
+   "area": "scores_weekly",
+   "does": "입력표 칸 하나 저장",
+   "from": [
+    "참고사이트 성적 입력(칸마다 저장)"
+   ]
+  },
+  {
+   "action": "recordsAllPresent",
+   "area": "scores_weekly",
+   "does": "출결 빈 학생 모두 출석",
+   "from": [
+    "새 기능"
+   ]
+  },
+  {
+   "action": "cellMockMax",
+   "area": "scores_weekly",
+   "does": "모의 회차 칸 만점",
+   "from": [
+    "참고사이트 mockcfg(모의 만점)"
+   ]
+  },
+  {
+   "action": "weeklyStatus",
+   "area": "scores_weekly",
+   "does": "입력 현황",
+   "from": [
+    "참고사이트 입력 현황"
+   ]
+  },
+  {
+   "action": "rulesGet",
+   "area": "scores_weekly",
+   "does": "평가 규칙 읽기",
+   "from": [
+    "참고사이트 가중치 W·과제 환산 HWV·경보 기준 ACFG"
+   ]
+  },
+  {
+   "action": "rulesSave",
+   "area": "scores_weekly",
+   "does": "평가 규칙 저장",
+   "from": [
+    "참고사이트 meta/alertcfg(부원장만 수정)"
+   ]
   }
  ],
  "legacy": [

@@ -81,7 +81,7 @@ export function summaryMain(app: App): TemplateResult {
 }
 
 function editSession(app: App, s: Session | null, kind: "class" | "holiday"): void {
-  const f = { on_date: s?.on_date ?? "", start_t: s?.start_t ?? "", end_t: s?.end_t ?? "", week_label: s?.week_label ?? "", note: s?.note ?? "", important: s?.important ?? kind === "holiday", kind: s?.kind ?? kind };
+  const f = { on_date: s?.on_date ?? "", start_t: s?.start_t ?? "", end_t: s?.end_t ?? "", week_label: s?.week_label ?? "", note: s?.note ?? "", important: s?.important ?? kind === "holiday", kind: s?.kind ?? kind, mock: s?.mock ?? false };
   openDialog(s ? "회차 고치기" : kind === "holiday" ? "휴강 추가" : "회차 추가", (close) => html`<div class="db"><div class="form">
     <label class="fld"><span>날짜</span><input type="date" .value=${f.on_date} @input=${(e: Event) => { f.on_date = (e.target as HTMLInputElement).value; }}></label>
     <label class="fld"><span>주차</span><input placeholder="예: 3주차" .value=${f.week_label} @input=${(e: Event) => { f.week_label = (e.target as HTMLInputElement).value; }}></label>
@@ -90,6 +90,7 @@ function editSession(app: App, s: Session | null, kind: "class" | "holiday"): vo
       <label class="fld"><span>끝</span><input type="time" .value=${f.end_t} @input=${(e: Event) => { f.end_t = (e.target as HTMLInputElement).value; }}></label>` : nothing}
     <label class="fld full"><span>${f.kind === "holiday" ? "휴강 사유" : "메모"}</span><input maxlength="300" .value=${f.note} @input=${(e: Event) => { f.note = (e.target as HTMLInputElement).value; }}></label>
     <label class="full" style="display:flex;gap:6px;align-items:center"><input type="checkbox" .checked=${f.important} @change=${(e: Event) => { f.important = (e.target as HTMLInputElement).checked; }}>중요 표시</label>
+    ${f.kind === "class" ? html`<label class="full" style="display:flex;gap:6px;align-items:center"><input type="checkbox" .checked=${f.mock} @change=${(e: Event) => { f.mock = (e.target as HTMLInputElement).checked; }}>모의고사 회차(성적 입력에 모의 원점수 칸이 생깁니다)</label>` : nothing}
   </div></div><div class="df">
     ${s ? html`<button class="btn bad" @click=${async () => { if (await ask("회차 삭제", `${dlabel(s.on_date)} ${s.start_t} 줄을 지울까요?`, "삭제") && await termCall(app, "sessionDelete", { id: s.id }, "지웠습니다.")) close(); }}>삭제</button>` : nothing}
     <div class="sp"></div><button class="btn" @click=${close}>취소</button>
@@ -98,6 +99,7 @@ function editSession(app: App, s: Session | null, kind: "class" | "holiday"): vo
 
 export function detailMain(app: App): TemplateResult {
   const ed = can(app, "class", "editor");
+  const score = can(app, "scores_weekly", "viewer"); // 시간표를 못 고치는 선생님은 칸을 누르면 성적 입력으로
   const cls = classes();
   const today = new Date().toISOString().slice(0, 10);
   const rows = S.term!.sessions.filter((s) => !hidePast || s.on_date >= today);
@@ -120,11 +122,12 @@ export function detailMain(app: App): TemplateResult {
       const rowEdit = () => ed && editSession(app, s, s.kind);
       return html`<tr class=${s.kind === "holiday" ? "hol" : s.on_date < today ? "past" : ""}>
         <td class="fx" style="left:0"><b>${wk}</b></td>
-        <td class=${ed ? "click" : ""} @click=${rowEdit}>${s.important ? html`<span class="star on">★</span>` : nothing}${dlabel(s.on_date)}</td>
+        <td class=${ed ? "click" : ""} @click=${rowEdit}>${s.important ? html`<span class="star on">★</span>` : nothing}${dlabel(s.on_date)}${s.mock ? html` <span class="chip warn">모의</span>` : nothing}</td>
         <td class=${ed ? "click" : ""} @click=${rowEdit}>${s.kind === "holiday" ? "" : `${s.start_t}~${s.end_t}`}</td>
         ${s.kind === "holiday" ? html`<td colspan=${cls.length} class="holnote ${ed ? "click" : ""}" @click=${rowEdit}>${s.note || "휴강"}</td>`
-          : cls.map((c) => { const cur = s.cells.find((x) => x.class_id === c.id); return html`<td class=${ed ? "click" : ""}
-            @click=${() => ed && editCell(`${dlabel(s.on_date)} ${s.start_t} · ${c.name}`, cur, c.id, (n) => termCall(app, "sessionSave", { ...s, cells: withCell(s.cells, c.id, n) }, "저장했습니다."))}>${cellView(cur, nth.get(`${s.id}:${c.id}`))}</td>`; })}
+          : cls.map((c) => { const cur = s.cells.find((x) => x.class_id === c.id); return html`<td class=${ed || (cur && score) ? "click" : ""}
+            @click=${() => ed ? editCell(`${dlabel(s.on_date)} ${s.start_t} · ${c.name}`, cur, c.id, (n) => termCall(app, "sessionSave", { ...s, cells: withCell(s.cells, c.id, n) }, "저장했습니다."))
+              : cur && score && go(app.ws, "class", String(S.termId), "input", String(s.id), String(c.id))}>${cellView(cur, nth.get(`${s.id}:${c.id}`))}</td>`; })}
       </tr>`;
     })}</tbody></table></div>` : html`<div class="card"><div class="empty">회차가 없습니다. ${ed ? "‘주차 일괄 생성’으로 요약 틀을 날짜에 복사하거나 ‘+ 회차 추가’를 쓰세요." : ""}</div></div>`}
     <div class="note" style="margin-top:8px">날짜·시간 칸을 누르면 회차를 고치거나 지웁니다. 반 칸을 누르면 과목·강사를 고칩니다.</div></div>`;

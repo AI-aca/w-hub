@@ -23,9 +23,9 @@ export async function termData(tx: Tx, termId: number) {
   const slots = await tx`select id::int as id, weekday, start_t, end_t, sort, ver from class.slots where term_id = ${termId} order by weekday = 0, weekday, start_t, sort, id`;
   const slotCells = await tx`select c.slot_id::int as slot_id, c.class_id::int as class_id, c.subject_id::int as subject_id, c.staff_id, c.note
                              from class.slot_cells c join class.slots s on s.id = c.slot_id where s.term_id = ${termId}`;
-  const sessions = await tx`select id::int as id, on_date::text as on_date, start_t, end_t, kind, week_label, note, important, ver
+  const sessions = await tx`select id::int as id, on_date::text as on_date, start_t, end_t, kind, week_label, note, important, mock, ver
                             from class.sessions where term_id = ${termId} order by on_date, start_t, id`;
-  const sessCells = await tx`select c.session_id::int as session_id, c.class_id::int as class_id, c.subject_id::int as subject_id, c.staff_id, c.note
+  const sessCells = await tx`select c.session_id::int as session_id, c.class_id::int as class_id, c.subject_id::int as subject_id, c.staff_id, c.note, c.mock_max::float as mock_max
                              from class.session_cells c join class.sessions s on s.id = c.session_id where s.term_id = ${termId}`;
   const weeks = await tx`select id::int as id, category, no, label from class.weeks where term_id = ${termId} order by category, no`;
   const curriculum = await tx`select c.week_id::int as week_id, c.subject_id::int as subject_id, c.class_id::int as class_id, c.content, c.important, c.ver,
@@ -43,7 +43,7 @@ export async function termData(tx: Tx, termId: number) {
 
 export default [
   defineAction({
-    name: "classTerm", who: { area: "class", need: "viewer" },
+    name: "classTerm", who: { area: ["class", "scores_weekly"], need: "viewer" },
     run: async ({ tx, ws, body }) => termData(tx, (await termOf(tx, ws, body.term_id)).id),
   }),
 
@@ -91,7 +91,7 @@ export default [
       const kind = body.kind === "holiday" ? "holiday" : "class";
       const v = {
         on_date: ymdDate(body.on_date), start_t: hhmm(body.start_t), end_t: hhmm(body.end_t), kind,
-        week_label: str(body.week_label, 30), note: str(body.note, 300), important: body.important === true,
+        week_label: str(body.week_label, 30), note: str(body.note, 300), important: body.important === true, mock: kind === "class" && body.mock === true,
         updated_by: me.email,
       };
       const cells = kind === "holiday" ? [] : await cellsOf(tx, ws, t.course_id, body.cells);
@@ -100,12 +100,20 @@ export default [
         const [s] = await tx`select ver from class.sessions where id = ${id} and term_id = ${t.id}`;
         if (!s) fail("없는 회차입니다.", 404, "not_found");
         sameVer(s.ver, body.ver);
+        // 성적이 입력된 반의 칸은 지우지 않는다(칸을 지우면 그 칸의 성적도 지워지므로 막는다).
+        const keep = cells.map((c) => c.class_id);
+        const [hit] = await tx`select k.name from class.records r join class.classes k on k.id = r.class_id
+                               where r.session_id = ${id} and not (r.class_id = any(${keep})) limit 1`;
+        if (hit) fail(`${hit.name} 칸에 입력된 성적이 있어 비우거나 휴강으로 바꿀 수 없습니다.`);
         await tx`update class.sessions set ${tx(v)}, ver = ver + 1, updated_at = now() where id = ${id}`;
-        await tx`delete from class.session_cells where session_id = ${id}`;
+        await tx`delete from class.session_cells where session_id = ${id} and not (class_id = any(${keep}))`;
       } else {
         [{ id }] = await tx`insert into class.sessions ${tx({ ...v, term_id: t.id })} returning id::int as id`;
       }
-      for (const c of cells) await tx`insert into class.session_cells ${tx({ ...c, session_id: id })}`;
+      for (const c of cells) {
+        await tx`insert into class.session_cells ${tx({ ...c, session_id: id })}
+                 on conflict (session_id, class_id) do update set subject_id = excluded.subject_id, staff_id = excluded.staff_id, note = excluded.note`;
+      }
       await log(tx, me.email, kind === "holiday" ? "휴강 저장" : "시간표 상세 저장", { term_id: t.id, session_id: id, on_date: v.on_date }, ws, "class");
       return await termData(tx, t.id);
     },
@@ -115,6 +123,7 @@ export default [
     name: "sessionDelete", who: { area: "class", need: "editor" },
     run: async ({ tx, ws, body, me }) => {
       const t = await termOf(tx, ws, body.term_id);
+      if ((await tx`select 1 from class.records where session_id = ${Number(body.id)} limit 1`).length) fail("성적이 입력된 회차는 지울 수 없습니다. 성적을 먼저 지우세요.");
       const [r] = await tx`delete from class.sessions where id = ${Number(body.id)} and term_id = ${t.id} returning id, on_date::text as on_date`;
       if (!r) fail("없는 회차입니다.", 404, "not_found");
       await log(tx, me.email, "시간표 상세 삭제", { term_id: t.id, session_id: r.id, on_date: r.on_date }, ws, "class");
