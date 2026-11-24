@@ -78,10 +78,10 @@ jobs:
       - run: npm ci
       - name: 빌드
         env:
-          VITE_API_URL: ${{ vars.WHUB_API_URL }}
-          VITE_SUPABASE_KEY: ${{ vars.WHUB_SUPABASE_PUBLISHABLE_KEY }}
+          # 공개 값(브라우저 JS에 그대로 실림). w-hub Supabase 프로젝트.
+          VITE_API_URL: https://bwohwhsrwasaykydjhkh.supabase.co/functions/v1/api
+          VITE_SUPABASE_KEY: sb_publishable_Ci19OL6BolLQ-pmsxJsRcA_XtTlIFRb
         run: |
-          test -n "$VITE_API_URL" || { echo "저장소 변수 WHUB_API_URL 이 없습니다"; exit 1; }
           npm run build
           cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5
