@@ -72,9 +72,15 @@ Deno.test({ name: "입력표: 칸마다 저장, 값 검사, 모두 출석, 입�
     eq((await W(tch, "recordSave", { ...cell, student_id: I.가학생, field, value })).status, 400, `${field}=${value}`);
   }
   eq((await W(tch, "recordSave", { ...cell, student_id: I.가학생, field: "mock", value: 50 })).status, 400, "모의 회차가 아니면 모의 점수 거부");
-  s = (await W(tch, "recordsAllPresent", cell)).json;
-  eq(s.records.map((r: J) => [r.att]).sort(), [["지각"], ["출석"]], "이미 넣은 지각은 그대로");
-  const st = (await W(tch, "weeklyStatus", { term_id: I.term })).json.rows.sort((a: J, b: J) => a.class_id - b.class_id);
+  let st = (await W(tch, "weeklyStatus", { term_id: I.term })).json.rows.sort((a: J, b: J) => a.class_id - b.class_id);
+  eq(st.map((r: J) => [r.total, r.filled]), [[2, 1], [0, 0]], "빈 칸(출석 기본값)만 있는 학생은 입력 안 한 것으로");
+  // 붙여넣기: 이름으로 / 순서대로, 하나라도 틀리면 전부 취소
+  s = (await W(tch, "recordsPaste", { ...cell, field: "test", rows: [{ student_id: I.가학생, value: 70 }, { student_id: I.나학생, value: 80 }] })).json;
+  eq(s.records.map((r: J) => r.test).sort(), [70, 80]);
+  eq((await W(tch, "recordsPaste", { ...cell, field: "test", rows: [{ student_id: I.가학생, value: 90 }, { student_id: I.나학생, value: 101 }] })).status, 400);
+  eq((await W(tch, "weeklySheet", cell)).json.records.map((r: J) => r.test).sort(), [70, 80], "틀린 값이 섞이면 앞의 값도 안 들어감");
+  eq((await W(tch, "recordsPaste", { ...cell, field: "book", rows: [{ student_id: I.가학생, value: 1 }] })).status, 400);
+  st = (await W(tch, "weeklyStatus", { term_id: I.term })).json.rows.sort((a: J, b: J) => a.class_id - b.class_id);
   eq(st.map((r: J) => [r.total, r.filled]), [[2, 2], [0, 0]]);
 }});
 
@@ -84,13 +90,28 @@ Deno.test({ name: "모의 회차·만점, 시간표를 고쳐도 성적은 지�
   const d = (await W(owner, "sessionSave", { term_id: I.term, id: I.sess.id, ver: I.sess.ver, on_date: "2026-09-05", start_t: "18:30", end_t: "21:30", mock: true, cells })).json;
   I.sess = d.sessions[0];
   eq((await W(tch, "weeklySheet", cell)).json.records.length, 2, "칸 내용을 고쳐도 입력된 성적 유지");
-  await W(tch, "cellMockMax", { ...cell, mock_max: 60 });
+  eq((await W(tch, "weeklySheet", cell)).json.info.mock_max, null, "만점 미정");
+  eq((await W(tch, "recordSave", { ...cell, student_id: I.나학생, field: "mock", value: 58 })).json.value, 58, "만점 미정이어도 원점수는 넣을 수 있음");
+  const mm = { term_id: I.term, session_id: I.sess.id, subject_id: I.sub };
+  eq((await W(tch, "mockMaxSave", { ...mm, max_score: 60 })).status, 403, "만점은 관리 권한(원장)만");
+  eq((await W(owner, "mockMaxSave", { ...mm, max_score: 50 })).status, 400, "이미 넣은 원점수(58)보다 작은 만점은 거부");
+  const list = (await W(owner, "mockMaxSave", { ...mm, max_score: 60 })).json.rows;
+  eq(list.map((r: J) => [r.subject, r.max_score]), [["대수", 60]]);
+  eq((await W(tch, "mockMaxList", { term_id: I.term })).json.rows.length, 1, "선생님은 보기만");
+  eq((await W(owner, "mockMaxSave", { ...mm, subject_id: 999999, max_score: 60 })).status, 400, "그 회차에 없는 과목");
   eq((await W(tch, "recordSave", { ...cell, student_id: I.가학생, field: "mock", value: 61 })).status, 400, "만점 초과");
   eq((await W(tch, "recordSave", { ...cell, student_id: I.가학생, field: "mock", value: 55.5 })).json.value, 55.5);
+  eq((await W(tch, "recordsPaste", { ...cell, field: "mock", rows: [{ student_id: I.가학생, value: 61 }] })).status, 400, "붙여넣기도 만점 검사");
   eq((await W(owner, "sessionSave", { term_id: I.term, id: I.sess.id, ver: I.sess.ver, on_date: "2026-09-05", cells: [{ class_id: I.B, subject_id: I.sub }] })).status, 400, "성적 있는 반 칸 비우기 막음");
   eq((await W(owner, "sessionSave", { term_id: I.term, id: I.sess.id, ver: I.sess.ver, on_date: "2026-09-05", kind: "holiday" })).status, 400, "휴강으로 바꾸기 막음");
   eq((await W(owner, "sessionDelete", { term_id: I.term, id: I.sess.id })).status, 400, "성적 있는 회차 삭제 막음");
   eq((await W(tch, "weeklySheet", cell)).json.info.mock_max, 60);
+  // 회차 만점을 지우면 과목 기본 만점
+  await W(owner, "mockMaxSave", { ...mm, max_score: "" });
+  const base = { course_id: I.course, weights: { att: 5, book: 5, beh: 5, act: 5, hw: 10, test: 20, mock: 50 }, hw_scale: { A: 100, B: 60, C: 20, D: 0 }, note_penalty: 2, alert: { drop: 15, gap: 20, rep: 2, days: 7 } };
+  eq((await W(owner, "rulesSave", { ...base, mock_default: { [I.sub]: 40 } })).json.rules.mock_default, { [String(I.sub)]: 40 });
+  eq((await W(tch, "weeklySheet", cell)).json.info.mock_max, 40);
+  eq((await W(owner, "rulesSave", { ...base, mock_default: { 999999: 40 } })).status, 400, "다른 과정 과목");
 }});
 
 Deno.test({ name: "평가 규칙: 기본값, 관리 권한만 저장", ...opts, fn: async () => {
@@ -98,6 +119,7 @@ Deno.test({ name: "평가 규칙: 기본값, 관리 권한만 저장", ...opts, 
   const body = { course_id: I.course, weights: { att: 5, book: 5, beh: 5, act: 5, hw: 10, test: 30, mock: 40 }, hw_scale: { A: 100, B: 70, C: 30, D: 0 }, note_penalty: 2, alert: { drop: 15, gap: 20, rep: 2, days: 7 } };
   eq((await W(tch, "rulesSave", body)).status, 403);
   eq((await W(owner, "rulesSave", body)).json.rules.weights.test, 30);
+  eq((await W(tch, "rulesGet", { course_id: I.course })).json.rules.mock_default, {}, "기본 만점 안 보내면 비움");
   eq((await W(owner, "rulesSave", { ...body, weights: { ...body.weights, test: -1 } })).status, 400);
 }});
 

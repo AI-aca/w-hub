@@ -13,7 +13,7 @@ import { head } from "../../shell/layout";
 interface Mem { workspace_id: string; area: string; role: Exclude<Role, "owner">; center_ids: number[] | null }
 interface User { email: string; name: string; is_owner: boolean; status: "approved" | "pending" | "blocked"; created_at: string; last_login: string | null; last_seen: string | null; memberships: Mem[] }
 interface Users { users: User[]; areas: AreaDef[]; workspaces: Workspace[]; centers: (Center & { active: boolean })[] }
-interface Org { centers: { id: number; name: string; sort: number; active: boolean }[]; schools: { id: number; center_id: number | null; name: string; level: string; sort: number; active: boolean }[]; staff: { id: string; name: string; email: string | null; phone: string; subjects: string[]; memo: string; active: boolean }[] }
+interface Org { centers: { id: number; name: string; sort: number; active: boolean }[]; schools: { id: number; center_id: number | null; name: string; level: string; sort: number; active: boolean }[]; staff: { id: string; name: string; email: string | null; phone: string; subjects: string[]; memo: string; active: boolean; center_id: number | null }[] }
 interface Log { id: number; at: string; email: string; name: string; workspace_id: string | null; area: string | null; action: string; detail: Record<string, unknown> }
 
 const STATUS_KO = { approved: "승인", pending: "승인 대기", blocked: "차단" } as const;
@@ -147,7 +147,7 @@ function orgMain(app: App): TemplateResult {
     <div class="card"><div class="ch"><h3>학교</h3><div class="sp"></div><button class="btn sm" @click=${() => editOrg(app, "school", null)}>+ 추가</button></div>
       <div class="cb" style="padding:4px 8px">${o.schools.length ? o.schools.map((s) => html`<a class="item" @click=${() => editOrg(app, "school", s)}>${s.name}${off(s.active)}<small>${s.level} · ${cn(s.center_id)}</small></a>`) : html`<div class="note" style="padding:8px">내신 자료를 옮겨 올 때 함께 채워집니다.</div>`}</div></div>
     <div class="card"><div class="ch"><h3>강사</h3><div class="sp"></div><button class="btn sm" @click=${() => editOrg(app, "staff", null)}>+ 추가</button></div>
-      <div class="cb" style="padding:4px 8px">${o.staff.length ? o.staff.map((s) => html`<a class="item" @click=${() => editOrg(app, "staff", s)}>${s.name}${off(s.active)}<small>${s.subjects.join("·")}</small></a>`) : html`<div class="note" style="padding:8px">주말반 강사 명단을 옮겨 올 때 함께 채워집니다.</div>`}</div></div>
+      <div class="cb" style="padding:4px 8px">${o.staff.length ? o.staff.map((s) => html`<a class="item" @click=${() => editOrg(app, "staff", s)}>${s.name}${off(s.active)}<small>${[s.center_id ? cn(s.center_id) : "", s.subjects.join("·")].filter(Boolean).join(" · ")}</small></a>`) : html`<div class="note" style="padding:8px">주말반 강사 명단을 옮겨 올 때 함께 채워집니다.</div>`}</div></div>
   </div>`;
 }
 
@@ -169,7 +169,9 @@ function editOrg(app: App, kind: OrgKind, cur: Record<string, unknown> | null): 
           ${["초", "중", "고"].map((l) => html`<option ?selected=${f.level === l}>${l}</option>`)}</select></label>
         <label class="fld"><span>센터</span><select @change=${(e: Event) => { f.center_id = (e.target as HTMLSelectElement).value || null; }}>
           <option value="">(없음)</option>${o.centers.map((c) => html`<option value=${String(c.id)} ?selected=${f.center_id === c.id}>${c.name}</option>`)}</select></label>` : nothing}
-      ${kind === "staff" ? html`${inp("email", "연결할 계정 이메일(선택)")}${inp("phone", "연락처")}
+      ${kind === "staff" ? html`<label class="fld"><span>소속 센터</span><select aria-label="소속 센터" @change=${(e: Event) => { f.center_id = (e.target as HTMLSelectElement).value || null; }}>
+          <option value="">(없음)</option>${o.centers.filter((c) => c.active || c.id === f.center_id).map((c) => html`<option value=${String(c.id)} ?selected=${Number(f.center_id) === c.id}>${c.name}</option>`)}</select></label>
+        ${inp("email", "연결할 계정 이메일(선택)")}${inp("phone", "연락처")}
         <label class="fld"><span>과목(쉼표로 구분)</span><input .value=${Array.isArray(f.subjects) ? f.subjects.join(", ") : String(f.subjects ?? "")} @input=${(e: Event) => { f.subjects = (e.target as HTMLInputElement).value; }}></label>
         <label class="fld full"><span>메모</span><textarea .value=${String(f.memo ?? "")} @input=${(e: Event) => { f.memo = (e.target as HTMLTextAreaElement).value; }}></textarea></label>` : nothing}
       ${kind !== "staff" ? inp("sort", "순서", "number") : nothing}

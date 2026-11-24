@@ -14,8 +14,9 @@ interface Info { on_date: string; start_t: string; end_t: string; week_label: st
 interface Rec { student_id: string; att: string | null; book: boolean | null; beh: number | null; nt: number | null; hw: string | null; act: number | null; test: number | null; mock: number | null; ver: number; updated_by: string }
 interface Sheet { info: Info; students: { student_id: string; name: string; name_no: number }[]; records: Rec[] }
 type Field = "att" | "book" | "beh" | "nt" | "hw" | "act" | "test" | "mock";
+const FIELDS: Field[] = ["att", "book", "beh", "nt", "hw", "act", "test", "mock"];
 
-const W = { key: "", sheet: null as Sheet | null, err: "", saved: "" };
+const W = { key: "", sheet: null as Sheet | null, err: "", saved: "", paste: false, pf: "test" as Field, pt: "", pmsg: "" };
 /** 입력 현황 화면이 다시 불러오도록 알리는 표시(저장할 때마다 바뀜) */
 export const weeklyDirty = { n: 0 };
 
@@ -62,11 +63,6 @@ async function save(app: App, sid: number, cid: number, st: string, f: Field, ra
   app.redraw();
 }
 
-async function sheetCall(app: App, action: string, body: Record<string, unknown>, okMsg: string): Promise<void> {
-  try { W.sheet = await api<Sheet>(action, body); weeklyDirty.n++; toast(okMsg, "ok"); } catch (e) { toast(errMsg(e), "bad"); }
-  app.redraw();
-}
-
 export function inputMain(app: App, sidPart?: string, cidPart?: string): TemplateResult {
   const sid = Number(sidPart) || 0, cid = Number(cidPart) || 0;
   const ss = sessions();
@@ -94,8 +90,8 @@ export function inputMain(app: App, sidPart?: string, cidPart?: string): Templat
     chips: inf ? html`<span class="chip">${dlabel(inf.on_date)} ${inf.start_t}~${inf.end_t}</span><span class="chip info">${inf.class_name}</span>
       ${inf.subject ? html`<span class="chip">${inf.subject}</span>` : nothing}${inf.staff ? html`<span class="chip">${inf.staff}</span>` : nothing}
       ${inf.mock ? html`<span class="chip warn">모의고사 회차</span>` : nothing}${W.saved ? html`<span class="note">${W.saved}</span>` : nothing}` : undefined,
-    actions: ed && sh ? html`<button class="btn" @click=${() => void sheetCall(app, "recordsAllPresent", { session_id: sid, class_id: cid }, "빈 출결을 모두 출석으로 넣었습니다.")}>모두 출석</button>` : undefined })}
-  <div class="content">${bar}${W.err ? html`<div class="card"><div class="empty">${W.err}</div></div>`
+    actions: ed && sh ? html`<button class="btn" @click=${() => { W.paste = !W.paste; app.redraw(); }}>📋 엑셀에서 붙여넣기</button>` : undefined })}
+  <div class="content">${bar}${W.paste && ed && sh ? pastePanel(app, sh, sid, cid) : nothing}${W.err ? html`<div class="card"><div class="empty">${W.err}</div></div>`
     : !sh ? html`<div class="loading">불러오는 중…</div>` : grid(app, sh, sid, cid, ed)}</div>`;
 }
 
@@ -110,12 +106,11 @@ function grid(app: App, sh: Sheet, sid: number, cid: number, ed: boolean): Templ
   const num = (st: string, f: Field, v: number | null, max: number, step = "1") => html`<td class="inp"><input type="number" min="0" max=${String(max)} step=${step}
     inputmode="decimal" .value=${v == null ? "" : String(v)} ?disabled=${!ed} @change=${sv(st, f)} aria-label=${f}></td>`;
   const noteLab = inf.category === "과학" ? "이론노트 미흡" : "오답노트 미흡";
-  const done = sh.records.filter((r) => r.att || r.hw || r.test != null || r.mock != null).length;
+  const done = sh.records.filter((r) => FIELDS.some((f) => r[f] != null)).length;
   return html`
-  ${inf.mock ? html`<div class="note" style="margin:0 0 8px;display:flex;gap:8px;align-items:center">모의고사 만점
-    <input class="sel" style="width:90px" type="number" min="1" step="0.5" .value=${inf.mock_max == null ? "" : String(inf.mock_max)} ?disabled=${!ed}
-      @change=${(e: Event) => void sheetCall(app, "cellMockMax", { session_id: sid, class_id: cid, mock_max: (e.target as HTMLInputElement).value }, "만점을 저장했습니다.")}>
-    <span>원점수를 넣으면 평가 때 (원점수 ÷ 만점 × 100)으로 바꿉니다.${inf.mock_max == null ? " 만점을 먼저 넣으세요." : ""}</span></div>` : nothing}
+  ${inf.mock ? html`<div class="note" style="margin:0 0 8px">${inf.mock_max != null
+    ? html`모의고사 만점 <b>${inf.mock_max}</b>점 (평가 설정에서 정함). 원점수만 넣으면 평가 때 (원점수 ÷ 만점 × 100)으로 바꿉니다.`
+    : html`<span class="chip warn">만점 미정</span> 원점수는 지금 넣어도 됩니다. 만점은 원장님이 평가 설정에서 회차·과목별로 정합니다.`}</div>` : nothing}
   ${sh.students.length ? html`<div class="gridwrap"><table class="g wk">
     <thead><tr><th class="fx" style="left:0;min-width:110px">학생</th><th>출결</th><th>교재<br>미지참</th><th>태도<br>지적</th><th title=${noteLab}>${noteLab.split(" ")[0]}<br>미흡</th>
       <th>과제</th><th>발표</th><th>위클리<br>테스트</th>${inf.mock ? html`<th>모의<br>원점수</th>` : nothing}</tr></thead>
@@ -124,7 +119,7 @@ function grid(app: App, sh: Sheet, sid: number, cid: number, ed: boolean): Templ
       const id = st.student_id;
       return html`<tr class=${r?.att === "결석" ? "abs" : ""}>
         <td class="fx" style="left:0"><b>${st.name}</b>${st.name_no > 1 ? html`<small class="note"> (${st.name_no})</small>` : nothing}</td>
-        <td class="inp sel3"><select ?disabled=${!ed} @change=${sv(id, "att")} aria-label="출결">${["", "출석", "지각", "결석"].map((o) => html`<option value=${o} ?selected=${(r?.att ?? "") === o}>${o || "—"}</option>`)}</select></td>
+        <td class="inp sel3"><select ?disabled=${!ed} @change=${sv(id, "att")} aria-label="출결">${[["", "출석"], ["지각", "지각"], ["결석", "결석"]].map(([v, l]) => html`<option value=${v} ?selected=${(r?.att === "출석" ? "" : r?.att ?? "") === v}>${l}</option>`)}</select></td>
         <td class="c"><input type="checkbox" .checked=${r?.book === true} ?disabled=${!ed} @change=${sv(id, "book")} aria-label="교재 미지참"></td>
         ${num(id, "beh", r?.beh ?? null, 50)}${num(id, "nt", r?.nt ?? null, 50)}
         <td class="inp sel3"><select ?disabled=${!ed} @change=${sv(id, "hw")} aria-label="과제">${["", "A", "B", "C", "D"].map((o) => html`<option value=${o} ?selected=${(r?.hw ?? "") === o}>${o || "—"}</option>`)}</select></td>
@@ -132,7 +127,51 @@ function grid(app: App, sh: Sheet, sid: number, cid: number, ed: boolean): Templ
         ${inf.mock ? num(id, "mock", r?.mock ?? null, inf.mock_max ?? 1000, "0.1") : nothing}
       </tr>`;
     })}</tbody></table></div>
-    <div class="note" style="margin-top:8px">${done}/${sh.students.length}명 입력. 칸을 바꾸면 바로 저장됩니다. 태도 지적·노트 미흡·발표는 횟수, 위클리테스트는 100점 기준.
+    <div class="note" style="margin-top:8px">${done}/${sh.students.length}명 입력. 칸을 바꾸면 바로 저장됩니다. 빈 칸은 기본값(출석·교재 지참·지적 0·미흡 0·발표 0)으로 계산합니다. 태도 지적·노트 미흡·발표는 횟수, 위클리테스트는 100점 기준.
       ${ed ? "" : " (보기 전용 — 입력 권한이 없습니다.)"}</div>`
     : html`<div class="card"><div class="empty">${inf.class_name}에 배정된 수강생이 없습니다. 학생·반편성에서 반을 정하세요.</div></div>`}`;
+}
+
+/** 엑셀에서 붙여넣기(참고사이트와 같은 규칙): 점수 열만 복사하면 표의 가나다 순서대로, '이름 점수' 두 열이면 이름으로 맞춘다. */
+function pastePanel(app: App, sh: Sheet, sid: number, cid: number): TemplateResult {
+  const fields: [Field, string][] = [["test", "위클리테스트 점수"], ...(sh.info.mock ? [["mock", "모의고사 원점수"] as [Field, string]] : []),
+    ["hw", "과제 (A~D)"], ["act", "발표 횟수"], ["beh", "태도 지적"], ["nt", "노트 미흡"], ["att", "출결 (출석/지각/결석)"]];
+  if (!fields.some(([f]) => f === W.pf)) W.pf = "test";
+  const apply = async () => {
+    const lines = W.pt.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const count = new Map<string, number>();
+    for (const s of sh.students) count.set(s.name, (count.get(s.name) ?? 0) + 1);
+    const rows: { student_id: string; value: string }[] = [];
+    const unknown: string[] = [];
+    let byName = 0;
+    lines.forEach((l, i) => {
+      const parts = l.split(/\t|,|\s+/).filter(Boolean);
+      const nameLike = parts.length >= 2 && Number.isNaN(Number(parts[0]));
+      if (nameLike && count.get(parts[0]) !== 1) { unknown.push(parts[0]); return; }
+      const st = nameLike ? sh.students.find((s) => s.name === parts[0]) : sh.students[i];
+      if (nameLike) byName++;
+      if (st) rows.push({ student_id: st.student_id, value: parts[parts.length - 1] });
+    });
+    if (unknown.length) { W.pmsg = `이 반에서 찾지 못했거나 동명이인인 이름: ${unknown.join(", ")}. 아무것도 넣지 않았습니다.`; app.redraw(); return; }
+    if (lines.length > sh.students.length && !byName) { W.pmsg = `줄 수(${lines.length})가 학생 수(${sh.students.length})보다 많습니다. 아무것도 넣지 않았습니다.`; app.redraw(); return; }
+    if (!rows.length) { W.pmsg = "읽을 수 있는 값이 없습니다. 한 줄에 점수 하나, 또는 '이름 점수' 형식으로 붙여넣어 주세요."; app.redraw(); return; }
+    try {
+      W.sheet = await api<Sheet>("recordsPaste", { session_id: sid, class_id: cid, field: W.pf, rows });
+      weeklyDirty.n++;
+      W.pmsg = `${rows.length}명에게 넣었습니다${byName ? "(이름으로 맞춤)" : "(표 순서대로)"}.`;
+      W.pt = "";
+    } catch (e) { W.pmsg = errMsg(e) + " 아무것도 넣지 않았습니다."; }
+    app.redraw();
+  };
+  return html`<div class="card" style="margin-bottom:10px"><div class="ch"><b>엑셀에서 붙여넣기</b><span class="note">지금 고른 회차·반에 들어갑니다</span></div><div class="cb">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+      <select class="sel" style="width:auto" aria-label="붙여넣을 항목" @change=${(e: Event) => { W.pf = (e.target as HTMLSelectElement).value as Field; }}>
+        ${fields.map(([f, l]) => html`<option value=${f} ?selected=${f === W.pf}>${l}</option>`)}</select>
+      <textarea class="cellta" style="flex:1;min-width:260px;height:110px" aria-label="붙여넣을 내용" placeholder="엑셀에서 복사한 내용을 붙여넣으세요"
+        .value=${W.pt} @input=${(e: Event) => { W.pt = (e.target as HTMLTextAreaElement).value; }}></textarea>
+      <button class="btn pri" @click=${apply}>넣기</button>
+    </div>
+    <div class="note" style="margin-top:6px">엑셀에서 점수 열만 복사하면 아래 표의 가나다 순서대로, '이름 점수' 두 열을 복사하면 이름으로 맞춰 넣습니다. 동명이인은 순서대로 넣어 주세요. 하나라도 틀린 값이 있으면 아무것도 넣지 않습니다.</div>
+    ${W.pmsg ? html`<div class="note" style="margin-top:6px"><b>${W.pmsg}</b></div>` : nothing}
+  </div></div>`;
 }

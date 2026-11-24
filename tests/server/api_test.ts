@@ -88,6 +88,16 @@ Deno.test({ name: "명부: 학교·강사 저장, 강사는 등록된 계정만 
   eq((await call({ action: "schoolSave", token: owner, ws: "weiz", name: "X", level: "대" })).status, 400);
   eq((await call({ action: "staffSave", token: owner, ws: "weiz", name: "김선생", email: "t1@test.kr", subjects: ["물리"] })).json.ok, true);
   eq((await call({ action: "staffSave", token: owner, ws: "weiz", name: "남선생", email: "nobody@test.kr" })).status, 400);
+  // 소속 센터: 같은 작업공간 센터만
+  const cens = (await call({ action: "orgList", token: owner, ws: "weiz" })).json.centers;
+  const ycen = (await call({ action: "orgList", token: owner, ws: "yonsei" })).json.centers;
+  const kim = (await call({ action: "orgList", token: owner, ws: "weiz" })).json.staff.find((x: { name: string }) => x.name === "김선생");
+  eq(kim.center_id, null);
+  eq((await call({ action: "staffSave", token: owner, ws: "weiz", ...kim, center_id: cens[0].id })).json.ok, true);
+  eq((await call({ action: "orgList", token: owner, ws: "weiz" })).json.staff.find((x: { name: string }) => x.name === "김선생").center_id, cens[0].id);
+  eq((await call({ action: "staffSave", token: owner, ws: "weiz", ...kim, center_id: ycen[0].id })).status, 400, "다른 작업공간 센터");
+  eq((await call({ action: "staffSave", token: owner, ws: "weiz", ...kim, center_id: "" })).json.ok, true);
+  eq((await call({ action: "orgList", token: owner, ws: "weiz" })).json.staff.find((x: { name: string }) => x.name === "김선생").center_id, null, "비우면 없음");
   const o = (await call({ action: "orgList", token: owner, ws: "weiz" })).json;
   eq(o.schools.length, 1);
   eq(o.staff[0].subjects, ["물리"]);

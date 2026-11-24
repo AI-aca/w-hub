@@ -16,7 +16,7 @@ async function meta(tx: Tx, ws: string) {
                             from class.subjects where course_id = any(${ids}) order by sort, id`;
   const classes = await tx`select id::int as id, course_id::int as course_id, name, sort, active
                            from class.classes where course_id = any(${ids}) order by sort, id`;
-  const staff = await tx`select id, name, email, phone, subjects, memo, active from org.staff where workspace_id = ${ws} order by active desc, name`;
+  const staff = await tx`select id, name, email, phone, subjects, memo, active, center_id::int as center_id from org.staff where workspace_id = ${ws} order by active desc, name`;
   return { ok: true, courses, terms, subjects, classes, staff };
 }
 

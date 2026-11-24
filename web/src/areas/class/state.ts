@@ -7,8 +7,8 @@ export interface Course { id: number; name: string; sort: number; active: boolea
 export interface Term { id: number; course_id: number; name: string; starts_on: string | null; ends_on: string | null; sort: number }
 export interface Subject { id: number; course_id: number; name: string; category: "수학" | "과학" | "기타"; emoji: string; sort: number; active: boolean }
 export interface Klass { id: number; course_id: number; name: string; sort: number; active: boolean }
-export interface Staff { id: string; name: string; email: string | null; phone: string; subjects: string[]; memo: string; active: boolean }
-export interface Cell { class_id: number; subject_id: number | null; staff_id: string | null; note: string; mock_max?: number | null }
+export interface Staff { id: string; name: string; email: string | null; phone: string; subjects: string[]; memo: string; active: boolean; center_id: number | null }
+export interface Cell { class_id: number; subject_id: number | null; staff_id: string | null; note: string }
 export interface Slot { id: number; weekday: number; start_t: string; end_t: string; sort: number; ver: number; cells: Cell[] }
 export interface Session { id: number; on_date: string; start_t: string; end_t: string; kind: "class" | "holiday"; week_label: string; note: string; important: boolean; mock: boolean; ver: number; cells: Cell[] }
 export interface Week { id: number; category: "수학" | "과학"; no: number; label: string }

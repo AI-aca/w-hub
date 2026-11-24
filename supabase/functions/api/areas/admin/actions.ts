@@ -114,7 +114,7 @@ export default [
       const centers = await tx`select id::int as id, name, sort, active from org.centers where workspace_id = ${ws} order by sort, name`;
       const schools = await tx`select id::int as id, center_id::int as center_id, name, level, sort, active
                                from org.schools where workspace_id = ${ws} order by level, sort, name`;
-      const staff = await tx`select id, name, email, phone, subjects, memo, active from org.staff where workspace_id = ${ws} order by active desc, name`;
+      const staff = await tx`select id, name, email, phone, subjects, memo, active, center_id::int as center_id from org.staff where workspace_id = ${ws} order by active desc, name`;
       return { ok: true, centers, schools, staff };
     },
   }),
@@ -182,18 +182,23 @@ export default [
       }
       const subjects = Array.isArray(b.subjects) ? (b.subjects as unknown[]).map((s) => str(s, 20)).filter(Boolean).slice(0, 10) : [];
       const phone = str(b.phone, 30), memo = str(b.memo, 500), active = b.active !== false;
+      const centerId = b.center_id == null || b.center_id === "" ? null : int(b.center_id);
+      if (centerId != null) {
+        const [c] = await tx`select name from org.centers where id = ${centerId} and workspace_id = ${ws}`;
+        if (!c) fail("작업공간에 없는 센터입니다.");
+      }
       try {
         if (b.id) {
           const [r] = await tx`update org.staff set name = ${name}, email = ${em}, phone = ${phone}, subjects = ${subjects},
-                                 memo = ${memo}, active = ${active}, updated_at = now()
+                                 memo = ${memo}, active = ${active}, center_id = ${centerId}, updated_at = now()
                                where id = ${str(b.id, 40)} and workspace_id = ${ws} returning id`;
           if (!r) fail("없는 강사입니다.", 404, "not_found");
         } else {
-          await tx`insert into org.staff (workspace_id, name, email, phone, subjects, memo, active)
-                   values (${ws}, ${name}, ${em}, ${phone}, ${subjects}, ${memo}, ${active})`;
+          await tx`insert into org.staff (workspace_id, name, email, phone, subjects, memo, active, center_id)
+                   values (${ws}, ${name}, ${em}, ${phone}, ${subjects}, ${memo}, ${active}, ${centerId})`;
         }
       } catch (e) { dup(e, "같은 이름의 강사가 이미 있습니다."); }
-      await log(tx, me.email, "강사 변경", { name, active }, ws);
+      await log(tx, me.email, "강사 변경", { name, active, center_id: centerId }, ws);
       return { ok: true };
     },
   }),

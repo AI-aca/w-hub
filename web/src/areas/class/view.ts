@@ -13,7 +13,8 @@ import { planMain } from "./plan";
 import { rosterMain } from "./roster";
 import { setupMain } from "./setup";
 import { inputMain } from "./weekly";
-import { rulesMain, statusMain } from "./status";
+import { statusMain } from "./status";
+import { rulesMain } from "./rules";
 import { navItem } from "../../shared/ui/icons";
 
 type Need = "viewer" | "editor" | "admin";

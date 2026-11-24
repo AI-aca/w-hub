@@ -292,17 +292,25 @@
    ]
   },
   {
-   "action": "recordsAllPresent",
+   "action": "recordsPaste",
    "area": "scores_weekly",
-   "does": "출결 빈 학생 모두 출석",
+   "does": "엑셀에서 붙여넣기(한 항목을 반 학생 여러 명에게, 하나라도 틀리면 전부 취소)",
    "from": [
-    "새 기능"
+    "참고사이트 엑셀에서 붙여넣기"
    ]
   },
   {
-   "action": "cellMockMax",
+   "action": "mockMaxList",
    "area": "scores_weekly",
-   "does": "모의 회차 칸 만점",
+   "does": "학기의 모의 회차 × 과목 만점 목록",
+   "from": [
+    "참고사이트 모의고사 성적표 만점"
+   ]
+  },
+  {
+   "action": "mockMaxSave",
+   "area": "scores_weekly",
+   "does": "모의고사 만점 저장(모의 회차 × 과목, 관리 권한)",
    "from": [
     "참고사이트 mockcfg(모의 만점)"
    ]

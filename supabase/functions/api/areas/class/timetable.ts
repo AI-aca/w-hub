@@ -25,7 +25,7 @@ export async function termData(tx: Tx, termId: number) {
                              from class.slot_cells c join class.slots s on s.id = c.slot_id where s.term_id = ${termId}`;
   const sessions = await tx`select id::int as id, on_date::text as on_date, start_t, end_t, kind, week_label, note, important, mock, ver
                             from class.sessions where term_id = ${termId} order by on_date, start_t, id`;
-  const sessCells = await tx`select c.session_id::int as session_id, c.class_id::int as class_id, c.subject_id::int as subject_id, c.staff_id, c.note, c.mock_max::float as mock_max
+  const sessCells = await tx`select c.session_id::int as session_id, c.class_id::int as class_id, c.subject_id::int as subject_id, c.staff_id, c.note
                              from class.session_cells c join class.sessions s on s.id = c.session_id where s.term_id = ${termId}`;
   const weeks = await tx`select id::int as id, category, no, label from class.weeks where term_id = ${termId} order by category, no`;
   const curriculum = await tx`select c.week_id::int as week_id, c.subject_id::int as subject_id, c.class_id::int as class_id, c.content, c.important, c.ver,

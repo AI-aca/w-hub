@@ -108,29 +108,44 @@ test("평가: 모의 회차 지정 → 성적 입력(칸마다 저장) → 입�
   await dlg(page).getByRole("button", { name: "저장" }).click();
   await expect(page.locator("table.tt tbody tr").first()).toContainText("모의");
 
+  // 만점은 평가 설정에서(원장), 회차 × 과목
+  await side(page).getByRole("link", { name: "평가 설정" }).click();
+  const mx = page.getByLabel("2026-08-22 대수 만점");
+  await expect(mx).toHaveAttribute("placeholder", "미정");
+  await mx.fill("50");
+  await mx.blur();
+  await expect(page.locator(".toast", { hasText: "만점을 저장했습니다" })).toBeVisible();
+
   await side(page).getByRole("link", { name: "성적 입력" }).click();
   await expect(page.getByRole("heading", { name: "성적 입력" })).toBeVisible();
   await expect(page.locator("table.wk tbody tr")).toHaveCount(2);
-  await page.getByRole("button", { name: "모두 출석" }).click();
-  await expect(page.locator("table.wk tbody tr").first().getByLabel("출결")).toHaveValue("출석");
+  await expect(page.locator(".content .note", { hasText: "모의고사 만점 50점" })).toBeVisible();
   const row = page.locator("table.wk tbody tr", { hasText: "김하나" });
-  await row.getByLabel("과제").selectOption("A");
+  await expect(row.getByLabel("출결")).toHaveValue("");
+  await expect(row.getByLabel("출결").locator("option:checked")).toHaveText("출석");
+  await row.getByLabel("출결").selectOption("지각");
   await expect(page.locator(".note", { hasText: "저장됨" })).toBeVisible();
-  await row.getByLabel("test").fill("88");
-  await row.getByLabel("test").blur();
-  await page.locator(".note", { hasText: "모의고사 만점" }).locator("input").fill("50");
-  await page.locator(".note", { hasText: "모의고사 만점" }).locator("input").blur();
-  await expect(page.locator(".toast", { hasText: "만점을 저장했습니다" })).toBeVisible();
+  await row.getByLabel("과제").selectOption("A");
   await row.getByLabel("mock").fill("45");
   await row.getByLabel("mock").blur();
   await row.getByLabel("교재 미지참").check();
-  await expect.poll(async () => (await apiCall(page, "weeklyStatus", { term_id: m.terms[0].id })).rows[0]?.filled).toBe(2);
+  // 엑셀에서 붙여넣기: 이름 점수
+  await page.getByRole("button", { name: "📋 엑셀에서 붙여넣기" }).click();
+  await page.getByLabel("붙여넣을 항목").selectOption("test");
+  await page.getByLabel("붙여넣을 내용").fill("김하나\t88\n이두리\t92");
+  await page.getByRole("button", { name: "넣기", exact: true }).click();
+  await expect(page.locator(".note b", { hasText: "2명에게 넣었습니다(이름으로 맞춤)" })).toBeVisible();
+  await page.getByLabel("붙여넣을 내용").fill("없는학생 50");
+  await page.getByRole("button", { name: "넣기", exact: true }).click();
+  await expect(page.locator(".note b", { hasText: "찾지 못했거나 동명이인인 이름: 없는학생" })).toBeVisible();
   await page.reload();
   const r2 = page.locator("table.wk tbody tr", { hasText: "김하나" });
+  await expect(r2.getByLabel("출결")).toHaveValue("지각");
   await expect(r2.getByLabel("과제")).toHaveValue("A");
   await expect(r2.getByLabel("test")).toHaveValue("88");
   await expect(r2.getByLabel("mock")).toHaveValue("45");
   await expect(r2.getByLabel("교재 미지참")).toBeChecked();
+  await expect(page.locator("table.wk tbody tr", { hasText: "이두리" }).getByLabel("test")).toHaveValue("92");
   await shot(page, "16_성적_입력");
 
   await side(page).getByRole("link", { name: "입력 현황" }).click();
@@ -143,10 +158,12 @@ test("평가: 모의 회차 지정 → 성적 입력(칸마다 저장) → 입�
   const w = page.locator("label", { hasText: "위클리테스트" }).locator("input");
   await expect(w).toHaveValue("20");
   await w.fill("30");
+  await page.getByLabel("대수 기본 만점").fill("40");
   await page.getByRole("button", { name: "저장", exact: true }).click();
-  await expect(page.locator(".toast", { hasText: "저장했습니다" })).toBeVisible();
+  await expect(page.locator(".toast", { hasText: "저장했습니다" }).first()).toBeVisible();
   await page.reload();
   await expect(page.locator("label", { hasText: "위클리테스트" }).locator("input")).toHaveValue("30");
+  await expect(page.getByLabel("대수 기본 만점")).toHaveValue("40");
   await shot(page, "18_평가_설정");
 
   // 선생님(성적·주말반 입력만): 수업 메뉴 안에서 평가 화면만 보임
@@ -180,4 +197,21 @@ test("왼쪽 메뉴 접기·펼치기(기억됨)", async ({ page }) => {
   await page.getByRole("button", { name: "메뉴 펼치기" }).click();
   await expect(page.locator("aside.side.mini")).toHaveCount(0);
   await expect(page.getByLabel("과정")).toBeVisible();
+});
+
+test("관리: 강사 소속 센터", async ({ page }) => {
+  await prepare(page);
+  await page.goto("/");
+  await loginAs(page, "owner@test.kr", "원장");
+  await page.getByRole("navigation", { name: "메뉴" }).getByRole("link", { name: "관리" }).click();
+  await page.getByRole("link", { name: "센터·학교·강사" }).click();
+  await page.locator(".card", { has: page.getByRole("heading", { name: "강사", exact: true }) }).getByRole("button", { name: "+ 추가" }).click();
+  await dlg(page).getByLabel("이름").fill("소속선생");
+  await dlg(page).getByLabel("소속 센터").selectOption({ label: "송도" });
+  await dlg(page).getByRole("button", { name: "저장" }).click();
+  await expect(dlg(page)).toHaveCount(0);
+  await expect(page.locator(".item", { hasText: "소속선생" })).toContainText("송도");
+  await page.locator(".item", { hasText: "소속선생" }).click();
+  await expect(dlg(page).getByLabel("소속 센터").locator("option:checked")).toHaveText("송도");
+  await shot(page, "20_강사_소속센터");
 });
