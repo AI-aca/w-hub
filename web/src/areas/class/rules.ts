@@ -7,7 +7,7 @@ import { can } from "../../shell/app";
 import { head } from "../../shell/layout";
 import { dlabel, S, subjects } from "./state";
 
-interface Rules { weights: Record<string, number>; hw_scale: Record<string, number>; note_penalty: number; alert: Record<string, number>; mock_default: Record<string, number | string>; updated_at: string | null; updated_by: string }
+interface Rules { weights: Record<string, number>; hw_scale: Record<string, number>; note_penalty: number; alert: Record<string, number>; mock_default: Record<string, number | string>; cat_weights: Record<string, number>; updated_at: string | null; updated_by: string }
 interface MaxRow { session_id: number; on_date: string; start_t: string; week_label: string; subject_id: number; subject: string; category: string; max_score: number | null; default_max: number | null }
 const R = { course: 0, term: 0, rules: null as Rules | null, form: null as Rules | null, maxes: null as MaxRow[] | null };
 const WL: [string, string][] = [["att", "출결"], ["book", "교재"], ["beh", "태도"], ["act", "발표"], ["hw", "과제"], ["test", "위클리테스트"], ["mock", "모의고사"]];
@@ -48,6 +48,8 @@ export function rulesMain(app: App): TemplateResult {
   <div class="content"><div class="rules">
     <div class="card"><div class="ch"><b>항목 가중치</b><span class="note">합 ${sum} (비율로 씀)</span></div><div class="cb rl">
       ${WL.map(([k, l]) => html`<label>${l}${n(f.weights, k, 100)}</label>`)}</div></div>
+    <div class="card"><div class="ch"><b>최종 점수 비율</b><span class="note">모의 종합(200점)도 같은 비율</span></div><div class="cb rl">
+      ${["수학", "과학"].map((k) => html`<label>${k}${n(f.cat_weights, k, 100)}</label>`)}</div></div>
     <div class="card"><div class="ch"><b>과제 등급 → 점수</b></div><div class="cb rl">${["A", "B", "C", "D"].map((k) => html`<label>${k}${n(f.hw_scale, k, 100)}</label>`)}</div></div>
     <div class="card"><div class="ch"><b>노트 미흡 감점</b></div><div class="cb rl"><label>1회당${n(f as unknown as Record<string, number>, "note_penalty", 20, "0.5")}점</label></div></div>
     <div class="card"><div class="ch"><b>경보 기준</b></div><div class="cb rl">${AL.map(([k, l, u]) => html`<label>${l}${n(f.alert, k, 100)}${u}</label>`)}</div></div>
@@ -58,6 +60,7 @@ export function rulesMain(app: App): TemplateResult {
   </div>
   ${mockMaxCard(app, ad)}
   <div class="note" style="margin-top:10px;line-height:1.7">평가 점수(100점) = 넣은 항목만 가중 평균 − 노트 미흡 횟수 × 감점.
+    최종 = 수학 평균 × 수학 비율 + 과학 평균 × 과학 비율 (기본 60 : 40). 모의 종합 = 같은 비율 × 2 (기본 수학×1.2 + 과학×0.8, 200점).<br>
     출결 100 − 결석×5 − 지각×2 · 교재 100 − 미지참×5 · 태도 100 − 지적×3 · 발표 횟수×5(100까지) · 과제 등급 점수 평균 · 위클리 평균 · 모의 (원점수÷만점×100) 평균.<br>
     경보: 모의 위치 하락·반 평균보다 낮음(100점 환산) · 테스트 연속 하락 · 과제 C·D 연속 · 노트 미흡 연속 · 최근 3회 중 결석·지각이 ‘연속 횟수’ 이상.<br>
     이 설정은 다음 단계의 평가 대시보드·집중관리·경보 화면이 씁니다.${R.rules?.updated_at ? ` 마지막 저장 ${ymdhm(R.rules.updated_at)} · ${R.rules.updated_by}` : " 아직 저장한 적 없음(기본값)."}

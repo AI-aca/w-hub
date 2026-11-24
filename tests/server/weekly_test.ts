@@ -60,7 +60,7 @@ Deno.test({ name: "권한: 성적 권한만 있어도 시간표는 읽지만 고
   eq((await W(await login("n@test.kr"), "classMeta")).status, 403);
 }});
 
-Deno.test({ name: "입력표: 칸마다 저장, 값 검사, 모두 출석, 입력 현황", ...opts, fn: async () => {
+Deno.test({ name: "입력표: 칸마다 저장, 값 검사, 붙여넣기, 입력 현황", ...opts, fn: async () => {
   const cell = { session_id: I.sess.id, class_id: I.A };
   let s = (await W(tch, "weeklySheet", cell)).json;
   eq([s.info.subject, s.info.class_name, s.students.length, s.records.length], ["대수", "A반", 2, 0]);
@@ -121,6 +121,16 @@ Deno.test({ name: "평가 규칙: 기본값, 관리 권한만 저장", ...opts, 
   eq((await W(owner, "rulesSave", body)).json.rules.weights.test, 30);
   eq((await W(tch, "rulesGet", { course_id: I.course })).json.rules.mock_default, {}, "기본 만점 안 보내면 비움");
   eq((await W(owner, "rulesSave", { ...body, weights: { ...body.weights, test: -1 } })).status, 400);
+}});
+
+Deno.test({ name: "평가 대시보드: 반 계산, 권한", ...opts, fn: async () => {
+  const d = (await W(tch, "evalClass", { term_id: I.term, class_id: I.A })).json;
+  eq(d.rows.length, 2);
+  const ga = d.rows.find((r: J) => r.student_id === I.가학생);
+  eq([ga.rank > 0, ga.final != null, Object.keys(ga.sub)], [true, true, [String(I.sub)]]);
+  eq(d.cat_weights, { 수학: 60, 과학: 40 });
+  eq((await W(onlyClass, "evalClass", { term_id: I.term, class_id: I.A })).status, 403, "수업 권한만으로는 평가 못 봄");
+  eq((await W(tch, "evalClass", { term_id: I.term, class_id: 999999 })).status, 400);
 }});
 
 Deno.test({ name: "정리", ...opts, fn: async () => { await jwks.shutdown(); } });

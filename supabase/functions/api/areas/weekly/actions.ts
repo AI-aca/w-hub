@@ -21,9 +21,9 @@ function clean(f: Field, v: unknown): string | number | boolean | null {
   return Math.round(n * 10) / 10;
 }
 
-const DEF = { mock_default: {} as Record<string, number>, weights: { att: 5, book: 5, beh: 5, act: 5, hw: 10, test: 20, mock: 50 }, hw_scale: { A: 100, B: 60, C: 20, D: 0 }, note_penalty: 2, alert: { drop: 15, gap: 20, rep: 2, days: 7 } };
-async function rules(tx: Tx, courseId: number) {
-  const [r] = await tx`select weights, hw_scale, note_penalty::float as note_penalty, alert, mock_default, updated_at, updated_by from class.rules where course_id = ${courseId}`;
+const DEF = { mock_default: {} as Record<string, number>, cat_weights: { 수학: 60, 과학: 40 }, weights: { att: 5, book: 5, beh: 5, act: 5, hw: 10, test: 20, mock: 50 }, hw_scale: { A: 100, B: 60, C: 20, D: 0 }, note_penalty: 2, alert: { drop: 15, gap: 20, rep: 2, days: 7 } };
+export async function rules(tx: Tx, courseId: number) {
+  const [r] = await tx`select weights, hw_scale, note_penalty::float as note_penalty, alert, mock_default, cat_weights, updated_at, updated_by from class.rules where course_id = ${courseId}`;
   return r ?? { ...DEF, updated_at: null, updated_by: "" };
 }
 
@@ -198,13 +198,16 @@ export default [
       };
       const weights = pick(body.weights, Object.keys(DEF.weights), 100);
       if (Object.values(weights).reduce((a, b) => a + b, 0) <= 0) fail("가중치 합이 0 입니다.");
+      const cw = pick(body.cat_weights ?? DEF.cat_weights, ["수학", "과학"], 100);
+      if (cw["수학"] + cw["과학"] <= 0) fail("수학·과학 비율 합이 0 입니다.");
       const v = {
         course_id: cid, weights: tx.json(weights), hw_scale: tx.json(pick(body.hw_scale, ["A", "B", "C", "D"], 100)),
         note_penalty: pick({ p: body.note_penalty }, ["p"], 20).p, alert: tx.json(pick(body.alert, ["drop", "gap", "rep", "days"], 100)),
         mock_default: tx.json(await mockDefaults(tx, cid, body.mock_default)), updated_by: me.email,
+        cat_weights: tx.json(cw),
       };
       await tx`insert into class.rules ${tx(v)} on conflict (course_id) do update set weights = excluded.weights, hw_scale = excluded.hw_scale,
-               note_penalty = excluded.note_penalty, alert = excluded.alert, mock_default = excluded.mock_default, updated_by = excluded.updated_by, updated_at = now()`;
+               note_penalty = excluded.note_penalty, alert = excluded.alert, mock_default = excluded.mock_default, cat_weights = excluded.cat_weights, updated_by = excluded.updated_by, updated_at = now()`;
       await log(tx, me.email, "평가 규칙 저장", { course_id: cid, weights }, ws, "scores_weekly");
       return { ok: true, rules: await rules(tx, cid) };
     },

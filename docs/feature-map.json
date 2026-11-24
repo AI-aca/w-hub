@@ -338,6 +338,14 @@
    "from": [
     "참고사이트 meta/alertcfg(부원장만 수정)"
    ]
+  },
+  {
+   "action": "evalClass",
+   "area": "scores_weekly",
+   "does": "평가 대시보드: 학기 × 반 평가 계산(과목 종합·수학·과학·최종·석차·모의 추이·반 평균)",
+   "from": [
+    "참고사이트 평가 대시보드 computeEval"
+   ]
   }
  ],
  "legacy": [

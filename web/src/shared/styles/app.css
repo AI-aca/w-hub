@@ -262,3 +262,23 @@ table.g.st .stc.none{background:var(--bad-soft);border-color:#f3c4c6;color:var(-
 .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 .rl{display:flex;flex-wrap:wrap;gap:10px 18px}
 .rl label{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink2)}
+/* 평가 대시보드 */
+.kpi .v small{font-size:13px;color:var(--mute);font-weight:600;margin-left:2px}
+.fcs{display:flex;gap:10px;flex-wrap:wrap}
+.fc{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;text-align:left;min-width:150px}
+.fc:hover{border-color:#cfd3da}
+.fc.on{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+.fc .sc{font-size:18px;font-weight:800;margin:2px 0;font-variant-numeric:tabular-nums}
+table.t.ev td,table.t.ev th{white-space:nowrap}
+table.t tr.pick td{background:var(--brand-soft)}
+.mini4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mini4>div{border:1px solid var(--line2);border-radius:9px;padding:9px 12px;display:flex;flex-direction:column;gap:2px}
+.mini4 span{font-size:12px;color:var(--mute);font-weight:600}
+.mini4 b{font-size:20px;font-variant-numeric:tabular-nums}
+.mini4 em{font-style:normal;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-bottom:6px}
+.card h4{margin:14px 0 8px;font-size:13px}
+ul.sw{margin:0;padding-left:18px;line-height:1.8}
+.lg{display:flex;gap:14px;font-size:12px;color:var(--ink2);margin-bottom:4px}
+.lg i{display:inline-block;width:12px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.head .seg button{white-space:nowrap;padding:6px 12px}

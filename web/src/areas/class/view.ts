@@ -1,5 +1,5 @@
 // 수업(주말반): 왼쪽 = 과정·학기·화면 목록, 오른쪽 = 고른 화면.
-// 주소: #/weiz/class/<학기 id>/<화면>  화면 = overview · tasks · summary · detail · math · science · roster · input · status · rules · setup
+// 주소: #/weiz/class/<학기 id>/<화면>  화면 = overview · tasks · summary · detail · math · science · roster · input · status · dash · rules · setup
 // 시간표·진도·학생은 '수업' 권한, 평가(성적 입력·입력 현황·평가 설정)는 '성적·주말반' 권한. 둘은 따로 줄 수 있다.
 import { html, nothing, type TemplateResult } from "lit-html";
 import { go, href } from "../../shared/core/route";
@@ -15,6 +15,7 @@ import { setupMain } from "./setup";
 import { inputMain } from "./weekly";
 import { statusMain } from "./status";
 import { rulesMain } from "./rules";
+import { dashMain } from "./dash";
 import { navItem } from "../../shared/ui/icons";
 
 type Need = "viewer" | "editor" | "admin";
@@ -27,6 +28,7 @@ const SCREENS: { key: string; label: string; group: string; icon: string; area: 
   { key: "science", label: "진도 과학", group: "진도", icon: "flask", area: "class", need: "viewer" },
   { key: "input", label: "성적 입력", group: "평가", icon: "pencil", area: "scores_weekly", need: "viewer" },
   { key: "status", label: "입력 현황", group: "평가", icon: "bars", area: "scores_weekly", need: "viewer" },
+  { key: "dash", label: "평가 대시보드", group: "평가", icon: "trend", area: "scores_weekly", need: "viewer" },
   { key: "rules", label: "평가 설정", group: "평가", icon: "sliders", area: "scores_weekly", need: "admin" },
   { key: "roster", label: "학생·반편성", group: "학생", icon: "users", area: "class", need: "viewer" },
   { key: "setup", label: "설정", group: "설정", icon: "gear", area: "class", need: "admin" },
@@ -73,6 +75,7 @@ export function classView(app: App): View {
   else if (screen === "input") main = inputMain(app, p1, p2);
   else if (screen === "status") main = statusMain(app);
   else if (screen === "rules") main = rulesMain(app);
+  else if (screen === "dash") main = dashMain(app, p1, p2);
   else main = overviewMain(app);
   return { side: sideNav(app, screen), main };
 }

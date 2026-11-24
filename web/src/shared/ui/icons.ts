@@ -12,6 +12,7 @@ const P: Record<string, string> = {
   gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 2v3 M12 19v3 M4.9 4.9L7 7 M17 17l2.1 2.1 M2 12h3 M19 12h3 M4.9 19.1L7 17 M17 7l2.1-2.1",
   pencil: "M4 20h4L19 9l-4-4L4 16z M14 6l4 4",
   bars: "M4 20V10 M10 20V4 M16 20v-7 M21 20H3",
+  trend: "M3 17l6-6 4 4 8-8 M14 7h7v7",
   sliders: "M4 6h9 M17 6h3 M15 4v4 M4 12h3 M11 12h9 M9 10v4 M4 18h11 M19 18h1 M17 16v4",
   shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
   building: "M4 21V5l8-2v18 M12 9h8v12 M2 21h20 M7 8h2 M7 12h2 M7 16h2 M15 13h2 M15 17h2",

@@ -94,7 +94,7 @@ async function apiCall(page: Page, action: string, body: Record<string, unknown>
 
 test("평가: 모의 회차 지정 → 성적 입력(칸마다 저장) → 입력 현황 → 평가 설정", async ({ page }) => {
   await owner(page);
-  await expect(side(page).getByRole("link", { name: "대시보드" })).toBeVisible();
+  await expect(side(page).getByRole("link", { name: "대시보드", exact: true })).toBeVisible();
   const m = await apiCall(page, "classMeta");
   const course = m.courses[0].id, pClass = m.classes.find((c: { name: string }) => c.name.startsWith("P반")).id;
   for (const name of ["김하나", "이두리"]) {
@@ -177,16 +177,16 @@ test("성적 권한만 있는 선생님: 평가 화면만, 시간표는 못 봄"
   await loginAs(page, "t2@test.kr", "선생님");
   await page.getByRole("navigation", { name: "메뉴" }).getByRole("link", { name: "수업" }).click();
   await expect(page.getByRole("heading", { name: "성적 입력" })).toBeVisible();
-  await expect(side(page).getByRole("link")).toHaveText(["성적 입력", "입력 현황"]);
+  await expect(side(page).getByRole("link")).toHaveText(["성적 입력", "입력 현황", "평가 대시보드"]);
   await expect(page.locator("table.wk tbody tr")).toHaveCount(2);
 });
 
 test("왼쪽 메뉴 접기·펼치기(기억됨)", async ({ page }) => {
   await owner(page);
-  await expect(side(page).getByRole("link", { name: "대시보드" })).toBeVisible();
+  await expect(side(page).getByRole("link", { name: "대시보드", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "메뉴 접기" }).click();
   await expect(page.locator("aside.side.mini")).toHaveCount(1);
-  await expect(side(page).getByRole("link", { name: "대시보드" }).locator(".tx")).toBeHidden();
+  await expect(side(page).getByRole("link", { name: "대시보드", exact: true }).locator(".tx")).toBeHidden();
   await expect(page.getByLabel("과정")).toBeHidden();
   await page.reload();
   await expect(page.locator("aside.side.mini")).toHaveCount(1);
@@ -214,4 +214,31 @@ test("관리: 강사 소속 센터", async ({ page }) => {
   await page.locator(".item", { hasText: "소속선생" }).click();
   await expect(dlg(page).getByLabel("소속 센터").locator("option:checked")).toHaveText("송도");
   await shot(page, "20_강사_소속센터");
+});
+
+test("평가 대시보드: 반 명단·석차·학생 상세·그래프", async ({ page }) => {
+  await owner(page);
+  await side(page).getByRole("link", { name: "평가 대시보드" }).click();
+  await expect(page.getByRole("heading", { name: "평가 대시보드" })).toBeVisible();
+  const rows = page.locator("table.ev tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(page.locator(".kpi", { hasText: "P반(Photon) 인원" })).toContainText("2명");
+  // 앞 시험에서 위클리테스트 가중치를 30 으로 바꿈 → 가중치 출결5·교재5·태도5·발표5·과제10·테스트30·모의50
+  // 김하나: 지각(98)·교재 미지참(95)·태도 100·발표 0·과제 A(100)·테스트 88·모의 45/50(90)
+  const kim = (5 * 98 + 5 * 95 + 5 * 100 + 5 * 0 + 10 * 100 + 30 * 88 + 50 * 90) / 110;
+  // 이두리: 테스트 92 만 → 과제·모의는 값이 없어 빼고 나눔(출결·교재·태도 100, 발표 0)
+  const lee = (5 * 100 + 5 * 100 + 5 * 100 + 5 * 0 + 30 * 92) / 50;
+  await expect(rows.first()).toContainText("김하나");
+  await expect(rows.first().locator("td").nth(2)).toHaveText(kim.toFixed(1));
+  await expect(rows.nth(1).locator("td").nth(2)).toHaveText(lee.toFixed(1));
+  await rows.nth(1).click();
+  await expect(page.locator(".card .ch b", { hasText: "학생 상세 · 이두리" })).toBeVisible();
+  await expect(page.locator("svg[aria-label='과목별 종합 점수']")).toBeVisible();
+  await page.locator("table.ev th", { hasText: "최종" }).click();
+  await expect(rows.first()).toContainText("김하나");
+  await page.locator("table.ev th", { hasText: "최종" }).click();
+  await expect(rows.first()).toContainText("이두리");
+  await shot(page, "21_평가_대시보드");
+  await page.locator("svg[aria-label='과목별 종합 점수']").scrollIntoViewIfNeeded();
+  await shot(page, "22_학생_상세");
 });

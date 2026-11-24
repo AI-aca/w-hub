@@ -51,7 +51,7 @@ jobs:
           bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A api_test.ts)
           bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A config_test.ts)
           bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A class_test.ts)
-          bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A weekly_test.ts)
+          bash tests/local/db_reset.sh && (cd tests/server && npx deno test -A weekly_test.ts weekly_eval_test.ts)
       - name: 옮겨 오기 시험
         env: { PGHOST: localhost }
         run: |
@@ -72,13 +72,12 @@ jobs:
       - if: failure()
         run: cat /tmp/serve.log || true
 
-  deploy:
+  # 화면 만들기와 올리기를 다른 작업으로 나눈다(GitHub 권장 방식).
+  # 한 작업 안에서 올린 직후 바로 배포하면 'github-pages 묶음을 찾지 못함'이 가끔 나서.
+  build-pages:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,5 +94,13 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with: { path: dist }
+
+  deploy:
+    needs: build-pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
