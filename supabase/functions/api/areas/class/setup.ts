@@ -2,7 +2,7 @@
 import type { Tx } from "../../lib/db.ts";
 import { log } from "../../lib/audit.ts";
 import { defineAction } from "../../lib/registry.ts";
-import { courseOf, ymdDate } from "../../lib/scope.ts";
+import { courseOf, refsOf, ymdDate } from "../../lib/scope.ts";
 import { fail, str } from "../../lib/util.ts";
 
 const CATS = ["수학", "과학", "기타"];
@@ -14,7 +14,7 @@ async function meta(tx: Tx, ws: string) {
                          from class.terms where course_id = any(${ids}) order by sort, id`;
   const subjects = await tx`select id::int as id, course_id::int as course_id, name, category, emoji, sort, active
                             from class.subjects where course_id = any(${ids}) order by sort, id`;
-  const classes = await tx`select id::int as id, course_id::int as course_id, name, sort, active
+  const classes = await tx`select id::int as id, course_id::int as course_id, name, sort, active, homeroom_staff_id
                            from class.classes where course_id = any(${ids}) order by sort, id`;
   const staff = await tx`select id, name, email, phone, subjects, memo, active, center_id::int as center_id from org.staff where workspace_id = ${ws} order by active desc, name`;
   return { ok: true, courses, terms, subjects, classes, staff };
@@ -86,8 +86,14 @@ export default [
             const emoji = str(body.emoji, 4);
             if (id) await tx`update class.subjects set name = ${name}, category = ${cat}, emoji = ${emoji}, sort = ${sort}, active = ${active} where id = ${id}`;
             else await tx`insert into class.subjects (course_id, name, category, emoji, sort) values (${cid}, ${name}, ${cat}, ${emoji}, ${sort})`;
-          } else if (id) await tx`update class.classes set name = ${name}, sort = ${sort}, active = ${active} where id = ${id}`;
-          else await tx`insert into class.classes (course_id, name, sort) values (${cid}, ${name}, ${sort})`;
+          } else {
+            // 담임(집중관리 반별): 보낸 경우만 바꾼다. 같은 작업공간 강사만.
+            const hr = "homeroom_staff_id" in body ? (await refsOf(tx, ws, cid, { staff_id: body.homeroom_staff_id })).staff_id : undefined;
+            let cls = id;
+            if (id) await tx`update class.classes set name = ${name}, sort = ${sort}, active = ${active} where id = ${id}`;
+            else cls = (await tx`insert into class.classes (course_id, name, sort) values (${cid}, ${name}, ${sort}) returning id::int as id`)[0].id as number;
+            if (hr !== undefined) await tx`update class.classes set homeroom_staff_id = ${hr} where id = ${cls}`;
+          }
         } else fail("알 수 없는 설정입니다.");
       } catch (e) {
         if ((e as { code?: string }).code === "23505") fail("같은 이름이 이미 있습니다.");

@@ -1,18 +1,20 @@
-// 평가 대시보드(성적·주말반 열람): 학기 × 반의 평가 계산 결과. 계산 규칙은 eval.ts(참고사이트와 같음).
+// 평가 대시보드(성적·주말반 열람): 학기 × 반의 평가 계산 결과. 계산 규칙은 lib/weekly_eval.ts(참고사이트와 같음).
 // 반 = 지금 그 반 수강생. 반을 옮긴 학생은 예전 반에서 받은 기록도 함께 센다(원본과 같음).
 import type { Tx } from "../../lib/db.ts";
 import { defineAction } from "../../lib/registry.ts";
 import { termOf } from "../../lib/scope.ts";
 import { fail } from "../../lib/util.ts";
-import { evaluate, type Rec } from "../../lib/weekly_eval.ts";
+import { evaluate, type Rec, type Session, weeksOf } from "../../lib/weekly_eval.ts";
 import { rules } from "./actions.ts";
 
-export async function evalData(tx: Tx, termId: number, courseId: number, classId: number) {
+/** upto: 이 주(회차 번호)까지의 기록만으로 계산(집중관리 n차 리포트 기준). 없으면 전체. */
+export async function evalData(tx: Tx, termId: number, courseId: number, classId: number, upto?: number) {
   const [k] = await tx`select id from class.classes where id = ${classId} and course_id = ${courseId}`;
   if (!k) fail("이 과정의 반이 아닙니다.");
   const r = await rules(tx, courseId);
   const subjects = await tx`select id::int as id, name, category, sort from class.subjects where course_id = ${courseId}`;
-  const sessions = await tx`select id::int as id, on_date::text as on_date, start_t, week_label, mock from class.sessions where term_id = ${termId} and kind = 'class'`;
+  let sessions = await tx`select id::int as id, on_date::text as on_date, start_t, week_label, mock from class.sessions where term_id = ${termId} and kind = 'class'` as unknown as Session[];
+  if (upto != null) { const { weekOf } = weeksOf(sessions); sessions = sessions.filter((s) => (weekOf.get(s.id) ?? 0) <= upto); }
   const students = await tx`select e.student_id, s.name, s.name_no from class.enrollments e join people.students s on s.id = e.student_id
                             where e.course_id = ${courseId} and e.class_id = ${classId} and e.status = 'active' order by s.name, s.name_no`;
   const ids = students.map((s) => s.student_id as string);
@@ -27,7 +29,7 @@ export async function evalData(tx: Tx, termId: number, courseId: number, classId
   const out = evaluate({
     rules: { weights: r.weights, hw_scale: r.hw_scale, note_penalty: Number(r.note_penalty), cat_weights: r.cat_weights ?? { 수학: 60, 과학: 40 } },
     subjects: subjects as unknown as { id: number; name: string; category: string; sort: number }[],
-    sessions: sessions as unknown as { id: number; on_date: string; start_t: string; week_label: string; mock: boolean }[],
+    sessions,
     students: students as unknown as { student_id: string; name: string; name_no: number }[],
     records: records as unknown as Rec[],
     maxOf: (sid, sub) => mm.get(`${sid}:${sub}`) ?? (def[String(sub)] != null ? Number(def[String(sub)]) : null),

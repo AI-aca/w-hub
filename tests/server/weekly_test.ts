@@ -133,4 +133,50 @@ Deno.test({ name: "평가 대시보드: 반 계산, 권한", ...opts, fn: async 
   eq((await W(tch, "evalClass", { term_id: I.term, class_id: 999999 })).status, 400);
 }});
 
+Deno.test({ name: "담임·집중관리·조치 기록", ...opts, fn: async () => {
+  eq((await call({ action: "staffSave", token: owner, ws: "weiz", name: "김담임", email: "t@test.kr" })).json.ok, true);
+  const staff = (await W(owner, "classMeta")).json.staff.find((x: J) => x.name === "김담임");
+  I.staff = staff.id;
+  eq((await W(tch, "classSetup", { kind: "class", course_id: I.course, id: I.A, name: "A반", homeroom_staff_id: I.staff })).status, 403, "담임은 수업 관리 권한");
+  let m = (await W(owner, "classSetup", { kind: "class", course_id: I.course, id: I.A, name: "A반", homeroom_staff_id: I.staff })).json;
+  eq(m.classes.find((c: J) => c.id === I.A).homeroom_staff_id, I.staff);
+  m = (await W(owner, "classSetup", { kind: "class", course_id: I.course, id: I.A, name: "A반" })).json;
+  eq(m.classes.find((c: J) => c.id === I.A).homeroom_staff_id, I.staff, "담임 칸을 안 보내면 그대로");
+  eq((await W(owner, "classSetup", { kind: "class", course_id: I.course, id: I.A, name: "A반", homeroom_staff_id: "00000000-0000-0000-0000-000000000000" })).status, 400);
+  let f = (await W(tch, "focusData", { term_id: I.term })).json;
+  eq([f.k, f.wins.length, f.wins[0].label, f.me_staff], [0, 1, "지금까지", I.staff], "모의 3회 미만 → 지금까지");
+  const A = f.classes.find((c: J) => c.id === I.A);
+  eq([A.homeroom_staff_id, A.focus.length, A.focus[0].score <= A.focus[1].score], [I.staff, 2, true], "최종 낮은 순");
+  const fu = { term_id: I.term, student_id: I.가학생, subject_id: I.sub, staff_id: I.staff, on_date: "2026-09-08", kind: "보충수업", body: "오답 보충 40분" };
+  eq((await W(onlyClass, "followupSave", fu)).status, 403, "수업 권한만으로는 기록 못 함");
+  for (const bad of [{ kind: "숙제" }, { body: "" }, { on_date: "9월" }, { subject_id: 999999 }, { student_id: "00000000-0000-0000-0000-000000000000" }]) {
+    eq((await W(tch, "followupSave", { ...fu, ...bad })).status, 400, JSON.stringify(bad));
+  }
+  const id1 = (await W(tch, "followupSave", fu)).json.id;
+  const id2 = (await W(owner, "followupSave", { ...fu, subject_id: null, kind: "학부모 상담", body: "전화 15분" })).json.id;
+  f = (await W(tch, "focusData", { term_id: I.term })).json;
+  eq(f.follows.map((x: J) => [x.kind, x.subject_id, x.staff_name]), [["보충수업", I.sub, "김담임"], ["학부모 상담", null, "김담임"]]);
+  eq((await W(tch, "followupDelete", { id: id2 })).status, 403, "남이 쓴 기록은 관리 권한만 지움");
+  eq((await W(tch, "followupDelete", { id: id1 })).json.ok, true);
+  eq((await W(owner, "followupDelete", { id: id2 })).json.ok, true);
+  eq((await W(tch, "focusData", { term_id: I.term })).json.follows.length, 0);
+}});
+
+Deno.test({ name: "과목 경보: 과제 C·D 2회 연속, 성적 입력 칸별, 조치하면 완료", ...opts, fn: async () => {
+  const d = (await W(owner, "sessionSave", { term_id: I.term, on_date: "2026-09-12", start_t: "18:30", end_t: "21:30", cells: [{ class_id: I.A, subject_id: I.sub, staff_id: I.staff }] })).json;
+  const s2 = d.sessions.find((x: J) => x.on_date === "2026-09-12");
+  await W(tch, "recordSave", { session_id: I.sess.id, class_id: I.A, student_id: I.가학생, field: "hw", value: "C" });
+  await W(tch, "recordSave", { session_id: s2.id, class_id: I.A, student_id: I.가학생, field: "hw", value: "D" });
+  let r = (await W(tch, "alertsTerm", { term_id: I.term })).json;
+  const a = r.alerts.find((x: J) => x.rs.some((y: J) => y.t === "hw"));
+  eq([a.name, a.date, a.due, a.staff_id, a.rs.map((y: J) => y.x)], ["가학생", "2026-09-12", "2026-09-19", I.staff, ["과제 C·D 2회 연속"]]);
+  eq(r.assign, [{ class_id: I.A, subject_id: I.sub, staff_id: I.staff }]);
+  eq((await W(tch, "alertsTerm", { term_id: I.term, session_id: s2.id, class_id: I.A })).json.alerts.map((x: J) => x.id), [a.id], "그 칸의 이번 회 경보");
+  eq((await W(tch, "alertsTerm", { term_id: I.term, session_id: I.sess.id, class_id: I.A })).json.alerts.length, 0, "지난 회에는 없음");
+  eq((await W(onlyClass, "alertsTerm", { term_id: I.term })).status, 403);
+  await W(tch, "followupSave", { term_id: I.term, student_id: I.가학생, subject_id: I.sub, staff_id: I.staff, on_date: "2026-09-01", kind: "학생 상담", body: "상담", alert_key: a.id });
+  r = (await W(tch, "alertsTerm", { term_id: I.term })).json;
+  eq(r.alerts.find((x: J) => x.id === a.id).st, "done", "경보에서 쓴 기록이면 조치 완료");
+}});
+
 Deno.test({ name: "정리", ...opts, fn: async () => { await jwks.shutdown(); } });

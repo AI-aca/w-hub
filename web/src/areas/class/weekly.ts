@@ -9,6 +9,8 @@ import type { App } from "../../shell/app";
 import { can } from "../../shell/app";
 import { head } from "../../shell/layout";
 import { className, dlabel, S, type Session, staffName, subjName, today } from "./state";
+import { track } from "./busy";
+import { inputAlerts } from "./alerts";
 
 interface Info { on_date: string; start_t: string; end_t: string; week_label: string; mock: boolean; mock_max: number | null; subject: string | null; category: string | null; staff: string | null; staff_email: string | null; class_name: string }
 interface Rec { student_id: string; att: string | null; book: boolean | null; beh: number | null; nt: number | null; hw: string | null; act: number | null; test: number | null; mock: number | null; ver: number; updated_by: string }
@@ -48,7 +50,7 @@ async function load(app: App, sid: number, cid: number): Promise<void> {
 async function save(app: App, sid: number, cid: number, st: string, f: Field, raw: unknown): Promise<void> {
   const value = raw === "" ? null : raw;
   try {
-    const r = await api<{ ver: number; value: unknown }>("recordSave", { session_id: sid, class_id: cid, student_id: st, field: f, value });
+    const r = await track(api<{ ver: number; value: unknown }>("recordSave", { session_id: sid, class_id: cid, student_id: st, field: f, value }));
     const sh = W.sheet!;
     let rec = sh.records.find((x) => x.student_id === st);
     if (!rec) { rec = { student_id: st, att: null, book: null, beh: null, nt: null, hw: null, act: null, test: null, mock: null, ver: 0, updated_by: "" }; sh.records.push(rec); }
@@ -91,7 +93,7 @@ export function inputMain(app: App, sidPart?: string, cidPart?: string): Templat
       ${inf.subject ? html`<span class="chip">${inf.subject}</span>` : nothing}${inf.staff ? html`<span class="chip">${inf.staff}</span>` : nothing}
       ${inf.mock ? html`<span class="chip warn">모의고사 회차</span>` : nothing}${W.saved ? html`<span class="note">${W.saved}</span>` : nothing}` : undefined,
     actions: ed && sh ? html`<button class="btn" @click=${() => { W.paste = !W.paste; app.redraw(); }}>📋 엑셀에서 붙여넣기</button>` : undefined })}
-  <div class="content">${bar}${W.paste && ed && sh ? pastePanel(app, sh, sid, cid) : nothing}${W.err ? html`<div class="card"><div class="empty">${W.err}</div></div>`
+  <div class="content">${bar}${inputAlerts(app, sid, cid, weeklyDirty.n)}${W.paste && ed && sh ? pastePanel(app, sh, sid, cid) : nothing}${W.err ? html`<div class="card"><div class="empty">${W.err}</div></div>`
     : !sh ? html`<div class="loading">불러오는 중…</div>` : grid(app, sh, sid, cid, ed)}</div>`;
 }
 
@@ -156,7 +158,7 @@ function pastePanel(app: App, sh: Sheet, sid: number, cid: number): TemplateResu
     if (lines.length > sh.students.length && !byName) { W.pmsg = `줄 수(${lines.length})가 학생 수(${sh.students.length})보다 많습니다. 아무것도 넣지 않았습니다.`; app.redraw(); return; }
     if (!rows.length) { W.pmsg = "읽을 수 있는 값이 없습니다. 한 줄에 점수 하나, 또는 '이름 점수' 형식으로 붙여넣어 주세요."; app.redraw(); return; }
     try {
-      W.sheet = await api<Sheet>("recordsPaste", { session_id: sid, class_id: cid, field: W.pf, rows });
+      W.sheet = await track(api<Sheet>("recordsPaste", { session_id: sid, class_id: cid, field: W.pf, rows }));
       weeklyDirty.n++;
       W.pmsg = `${rows.length}명에게 넣었습니다${byName ? "(이름으로 맞춤)" : "(표 순서대로)"}.`;
       W.pt = "";

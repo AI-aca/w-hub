@@ -6,7 +6,7 @@ import type { App } from "../../shell/app";
 export interface Course { id: number; name: string; sort: number; active: boolean }
 export interface Term { id: number; course_id: number; name: string; starts_on: string | null; ends_on: string | null; sort: number }
 export interface Subject { id: number; course_id: number; name: string; category: "수학" | "과학" | "기타"; emoji: string; sort: number; active: boolean }
-export interface Klass { id: number; course_id: number; name: string; sort: number; active: boolean }
+export interface Klass { id: number; course_id: number; name: string; sort: number; active: boolean; homeroom_staff_id: string | null }
 export interface Staff { id: string; name: string; email: string | null; phone: string; subjects: string[]; memo: string; active: boolean; center_id: number | null }
 export interface Cell { class_id: number; subject_id: number | null; staff_id: string | null; note: string }
 export interface Slot { id: number; weekday: number; start_t: string; end_t: string; sort: number; ver: number; cells: Cell[] }

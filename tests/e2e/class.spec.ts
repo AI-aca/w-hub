@@ -177,7 +177,7 @@ test("성적 권한만 있는 선생님: 평가 화면만, 시간표는 못 봄"
   await loginAs(page, "t2@test.kr", "선생님");
   await page.getByRole("navigation", { name: "메뉴" }).getByRole("link", { name: "수업" }).click();
   await expect(page.getByRole("heading", { name: "성적 입력" })).toBeVisible();
-  await expect(side(page).getByRole("link")).toHaveText(["성적 입력", "입력 현황", "평가 대시보드"]);
+  await expect(side(page).getByRole("link")).toHaveText(["성적 입력", "입력 현황", "평가 대시보드", "집중관리", "과목 경보"]);
   await expect(page.locator("table.wk tbody tr")).toHaveCount(2);
 });
 
@@ -241,4 +241,69 @@ test("평가 대시보드: 반 명단·석차·학생 상세·그래프", async 
   await shot(page, "21_평가_대시보드");
   await page.locator("svg[aria-label='과목별 종합 점수']").scrollIntoViewIfNeeded();
   await shot(page, "22_학생_상세");
+});
+
+test("집중관리·과목 경보: 담임 지정, 사후관리 기록, 경보 조치, 성적 입력 경보", async ({ page }) => {
+  await owner(page);
+  await side(page).getByRole("link", { name: "설정", exact: true }).click();
+  await page.locator(".item", { hasText: "P반(Photon)" }).click();
+  await dlg(page).getByLabel("담임 강사").selectOption({ label: "소속선생" });
+  await dlg(page).getByRole("button", { name: "저장" }).click();
+  await expect(page.locator(".item", { hasText: "P반(Photon)" })).toContainText("담임 소속선생");
+
+  await side(page).getByRole("link", { name: "집중관리" }).click();
+  await expect(page.getByRole("heading", { name: "집중관리" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "지금까지" })).toBeVisible();
+  const card = page.locator(".card", { hasText: "P반(Photon) 집중관리 대상" });
+  await expect(card).toContainText("담임 소속선생 · 조치 0 / 2명");
+  await expect(card.locator("tbody tr").first()).toContainText("이두리");
+  await card.getByRole("button", { name: "+ 기록" }).first().click();
+  await expect(card.getByLabel("작성 교사").locator("option:checked")).toHaveText("소속선생");
+  await card.getByLabel("조치 유형").selectOption("학부모 상담");
+  await card.getByLabel("내용").fill("전화 상담 15분");
+  await card.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(card).toContainText("조치 1 / 2명");
+  await expect(card.locator(".lg-line")).toContainText("학부모 상담");
+  await shot(page, "23_집중관리_반별");
+  await page.getByRole("tab", { name: "교사별" }).click();
+  await expect(page.locator(".empty", { hasText: "담당 강사가 정해지면" })).toBeVisible();
+
+  // 과제 C·D 2회 연속 → 경보
+  const m = await apiCall(page, "classMeta");
+  const term = m.terms[0].id, pClass = m.classes.find((c: { name: string }) => c.name.startsWith("P반")).id;
+  const sub = m.subjects.find((x: { name: string }) => x.name === "대수").id, stf = m.staff.find((x: { name: string }) => x.name === "소속선생").id;
+  const t = await apiCall(page, "sessionSave", { term_id: term, on_date: "2026-08-29", start_t: "18:30", end_t: "21:30", cells: [{ class_id: pClass, subject_id: sub, staff_id: stf }] });
+  const s1 = t.sessions.find((x: { on_date: string }) => x.on_date === "2026-08-22").id, s2 = t.sessions.find((x: { on_date: string }) => x.on_date === "2026-08-29").id;
+  const kim = (await apiCall(page, "weeklySheet", { session_id: s1, class_id: pClass })).students.find((x: { name: string }) => x.name === "김하나").student_id;
+  await apiCall(page, "recordSave", { session_id: s1, class_id: pClass, student_id: kim, field: "hw", value: "C" });
+  await apiCall(page, "recordSave", { session_id: s2, class_id: pClass, student_id: kim, field: "hw", value: "D" });
+  await page.reload();
+  await expect(side(page).getByRole("link", { name: "과목 경보" })).toContainText("1");
+  await side(page).getByRole("link", { name: "과목 경보" }).click();
+  await page.getByRole("tab", { name: "반별 (담임)" }).click();
+  const row = page.locator("table.fu tbody tr", { hasText: "김하나" });
+  await expect(row).toContainText("과제 C·D 2회 연속");
+  await expect(row).toContainText("기한 경과");
+  await expect(page.getByRole("button", { name: "📋 경보 요약 복사" })).toBeEnabled();
+  await shot(page, "24_과목_경보");
+  await row.getByRole("button", { name: "+ 조치" }).click();
+  await page.getByLabel("내용").fill("과제 재제출 받음");
+  await page.getByLabel("조치 유형").selectOption("과제 재제출");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "처리할 경보 0" })).toBeVisible();
+  await page.getByRole("tab", { name: /전체 1/ }).click();
+  await expect(page.locator("table.fu tbody tr", { hasText: "김하나" })).toContainText("늦은 조치");
+  await page.getByRole("tab", { name: "전체 현황" }).click();
+  await expect(page.locator(".card", { hasText: "교사별 대응 현황" })).toContainText("소속선생");
+  await side(page).getByRole("link", { name: "집중관리" }).click();
+  await page.getByRole("tab", { name: "교사별" }).click();
+  await expect(page.locator(".card", { hasText: "교사별 사후관리 현황" })).toContainText("P반(Photon) 대수");
+  await expect(page.locator(".card", { hasText: "소속선생 · 과목 종합 하위 3명" }).locator("tbody tr", { hasText: "김하나" })).toContainText("과제 재제출");
+  await shot(page, "26_집중관리_교사별");
+
+  // 성적 입력: 그 칸의 이번 회 경보
+  await page.goto(`/#/weiz/class/${term}/input/${s2}/${pClass}`);
+  await expect(page.locator(".callout.al-in")).toContainText("이번 회 대수 경보 1명");
+  await expect(page.locator(".callout.al-in")).toContainText("김하나");
+  await shot(page, "25_성적입력_경보");
 });

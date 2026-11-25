@@ -1,4 +1,4 @@
-// 수업: 설정(관리 권한) — 과정·학기·과목(수학/과학, 이모지)·반. 지우면 쓰인 곳이 있을 때 숨김. 강사는 관리 › 센터·학교·강사.
+// 수업: 설정(관리 권한) — 과정·학기·과목(수학/과학, 이모지)·반(담임 강사). 지우면 쓰인 곳이 있을 때 숨김. 강사는 관리 › 센터·학교·강사.
 import { html, nothing, type TemplateResult } from "lit-html";
 import { api } from "../../shared/core/api";
 import { go, href } from "../../shared/core/route";
@@ -21,7 +21,7 @@ async function call(app: App, body: Record<string, unknown>, msg: string): Promi
 }
 
 function edit(app: App, kind: Kind, cur: Record<string, unknown> | null): void {
-  const f: Record<string, unknown> = { name: "", sort: 0, category: "수학", emoji: "", starts_on: "", ends_on: "", active: true, ...(cur ?? {}) };
+  const f: Record<string, unknown> = { name: "", sort: 0, category: "수학", emoji: "", starts_on: "", ends_on: "", active: true, ...(kind === "class" ? { homeroom_staff_id: "" } : {}), ...(cur ?? {}) };
   const inp = (k: string, label: string, type = "text") => html`<label class="fld"><span>${label}</span><input type=${type} .value=${String(f[k] ?? "")}
     @input=${(e: Event) => { f[k] = (e.target as HTMLInputElement).value; }}></label>`;
   openDialog(`${KO[kind]} ${cur ? "고치기" : "추가"}`, (close) => html`<div class="db"><div class="form">
@@ -29,6 +29,8 @@ function edit(app: App, kind: Kind, cur: Record<string, unknown> | null): void {
     ${kind === "subject" ? html`<label class="fld"><span>구분</span><select @change=${(e: Event) => { f.category = (e.target as HTMLSelectElement).value; }}>
       ${["수학", "과학", "기타"].map((c) => html`<option ?selected=${c === f.category}>${c}</option>`)}</select></label>${inp("emoji", "이모지(선택)")}` : nothing}
     ${kind === "term" ? html`${inp("starts_on", "시작일", "date")}${inp("ends_on", "끝나는 날", "date")}` : nothing}
+    ${kind === "class" ? html`<label class="fld"><span>담임 강사</span><select aria-label="담임 강사" @change=${(e: Event) => { f.homeroom_staff_id = (e.target as HTMLSelectElement).value; }}>
+      <option value="">미정</option>${(S.meta?.staff ?? []).filter((s) => s.active || s.id === f.homeroom_staff_id).map((s) => html`<option value=${s.id} ?selected=${s.id === f.homeroom_staff_id}>${s.name}</option>`)}</select></label>` : nothing}
     ${cur && kind !== "term" ? html`<label class="full" style="display:flex;gap:6px;align-items:center"><input type="checkbox" .checked=${f.active !== false}
       @change=${(e: Event) => { f.active = (e.target as HTMLInputElement).checked; }}>목록에 보이기</label>` : nothing}
   </div></div><div class="df">
@@ -55,7 +57,7 @@ export function setupMain(app: App): TemplateResult {
       ${list(app, "course", m.courses as unknown as Record<string, unknown>[], (x) => (x.id === S.courseId ? "지금 보는 과정" : ""))}
       ${list(app, "term", terms() as unknown as Record<string, unknown>[], (x) => [x.starts_on, x.ends_on].filter(Boolean).join(" ~ "))}
       ${list(app, "subject", subjects() as unknown as Record<string, unknown>[], (x) => `${String(x.category)} ${String(x.emoji)}`)}
-      ${list(app, "class", classes(true) as unknown as Record<string, unknown>[], () => "")}
+      ${list(app, "class", classes(true) as unknown as Record<string, unknown>[], (x) => { const n = S.meta?.staff.find((s) => s.id === x.homeroom_staff_id)?.name; return n ? `담임 ${n}` : ""; })}
     </div>
     <div class="card"><div class="ch"><h3>강사</h3><span class="chip">${m.staff.filter((s) => s.active).length}</span><div class="sp"></div>
       ${app.me.user.is_owner ? html`<a class="btn sm" href=${href(app.ws, "admin", "org")}>관리에서 고치기</a>` : nothing}</div>
