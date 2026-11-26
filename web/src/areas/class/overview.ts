@@ -7,6 +7,7 @@ import type { App } from "../../shell/app";
 import { can } from "../../shell/app";
 import { head } from "../../shell/layout";
 import { classes, className, dlabel, type Ev, S, staffName, subjName, termCall, today } from "./state";
+import { inOrder } from "./busy";
 
 export function overviewMain(app: App): TemplateResult {
   const d = S.term!;
@@ -44,7 +45,9 @@ export function overviewMain(app: App): TemplateResult {
 export function tasksMain(app: App): TemplateResult {
   const d = S.term!;
   const ed = can(app, "class", "editor");
-  const save = (e: Ev, patch: Partial<Ev>) => termCall(app, "eventSave", { ...e, ...patch });
+  // 한 줄의 저장은 차례로(내용 고치고 바로 상태를 눌러도 앞 저장의 새 버전 번호로 보냄 — 동시에 보내면 '먼저 고쳤습니다'로 거절됨)
+  const save = (e: Ev, patch: Partial<Ev>) =>
+    inOrder(`ev:${e.id}`, () => termCall(app, "eventSave", { ...(S.term?.events.find((x) => x.id === e.id) ?? e), ...patch }));
   const row = (e: Ev) => html`<tr>
     <td style="width:130px">${ed ? html`<input type="date" class="sel" .value=${live(e.on_date)} @change=${(x: Event) => save(e, { on_date: (x.target as HTMLInputElement).value })}>` : dlabel(e.on_date)}</td>
     <td>${ed ? html`<textarea class="cellta" rows="1" .value=${live(e.title)} @change=${(x: Event) => save(e, { title: (x.target as HTMLTextAreaElement).value })}></textarea>` : e.title}</td>

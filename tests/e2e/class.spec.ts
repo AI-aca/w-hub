@@ -73,9 +73,23 @@ test("진도 수학: 주차 추가·칸 자동 저장 / 업무 일정 상태", a
   await expect(page.locator(".chip.ok", { hasText: "저장됨" })).toBeVisible();
   await page.reload();
   await expect(page.getByLabel("1주차 P반(Photon)")).toHaveValue("S-Core 1 (Sec.1 Challenge)");
+  // 느린 서버(응답 0.7초)에서 내용을 고치고 바로 ★: 두 저장이 차례로, 내용도 ★도 남아야 함
+  await page.route("**/api", async (r) => { await new Promise((x) => setTimeout(x, 700)); await r.continue(); });
+  await page.getByLabel("1주차 P반(Photon)").fill("S-Core 1 (Sec.1~2)");
+  await page.getByLabel("1주차 P반(Photon)").blur();
+  await page.locator("td.txt", { has: page.getByLabel("1주차 P반(Photon)") }).getByRole("button", { name: "중요 표시" }).click();
+  await expect(page.locator("td.txt.imp", { has: page.getByLabel("1주차 P반(Photon)") })).toBeVisible();
+  await expect(page.locator("td.txt.saving")).toHaveCount(0);
+  await page.unroute("**/api");
+  await page.reload();
+  await expect(page.getByLabel("1주차 P반(Photon)")).toHaveValue("S-Core 1 (Sec.1~2)");
+  await expect(page.locator("td.txt.imp", { has: page.getByLabel("1주차 P반(Photon)") })).toBeVisible();
+  await expect(page.locator(".toast.bad")).toHaveCount(0);
   await shot(page, "14_진도_수학");
   await side(page).getByRole("link", { name: "업무 일정" }).click();
   await page.getByRole("button", { name: "+ 내용 추가" }).click();
+  // 느린 서버 흉내(응답 0.7초): 내용을 고치고 바로 상태를 눌러도 저장이 차례로 되는지(GitHub 시험에서 실패했던 경우)
+  await page.route("**/api", async (r) => { await new Promise((x) => setTimeout(x, 700)); await r.continue(); });
   await page.locator("textarea.cellta").fill("수학팀 대면회의");
   await page.locator("textarea.cellta").blur();
   await page.getByRole("button", { name: "상태 바꾸기" }).click();

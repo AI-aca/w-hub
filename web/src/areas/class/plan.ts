@@ -7,6 +7,7 @@ import type { App } from "../../shell/app";
 import { can } from "../../shell/app";
 import { head } from "../../shell/layout";
 import { classes, type Curr, loadTerm, S, subjects, termCall, type Week } from "./state";
+import { inOrder } from "./busy";
 
 type Cat = "수학" | "과학";
 const V: Record<Cat, { mode: "subject" | "class"; pick: number }> = { 수학: { mode: "subject", pick: 0 }, 과학: { mode: "subject", pick: 0 } };
@@ -15,7 +16,14 @@ const saving = new Set<string>();
 const key = (w: number, s: number, c: number) => `${w}:${s}:${c}`;
 const find = (w: number, s: number, c: number): Curr | undefined => S.term!.curriculum.find((x) => x.week_id === w && x.subject_id === s && x.class_id === c);
 
-async function saveCell(app: App, w: Week, subjectId: number, classId: number, content: string, important: boolean): Promise<void> {
+// 같은 칸은 차례로 저장(내용을 고치고 바로 ★를 눌러도 앞 저장의 새 버전 번호로 보냄)
+//   바꾸지 않는 값은 저장할 때의 최신 값을 쓴다(★만 누르면 방금 저장한 내용을 그대로 둠).
+const saveCell = (app: App, w: Week, subjectId: number, classId: number, p: { content?: string; toggleStar?: boolean }) =>
+  inOrder(`cu:${key(w.id, subjectId, classId)}`, () => {
+    const c = find(w.id, subjectId, classId);
+    return saveCellNow(app, w, subjectId, classId, p.content ?? c?.content ?? "", p.toggleStar ? !(c?.important ?? false) : c?.important ?? false);
+  });
+async function saveCellNow(app: App, w: Week, subjectId: number, classId: number, content: string, important: boolean): Promise<void> {
   const cur = find(w.id, subjectId, classId);
   if (cur && cur.content === content && cur.important === important) return;
   if (!cur && !content && !important) return;
@@ -67,9 +75,9 @@ export function planMain(app: App, cat: Cat): TemplateResult {
           const busy = saving.has(key(w.id, s, k));
           return html`<td class="txt ${cur?.important ? "imp" : ""} ${busy ? "saving" : ""}">
             <textarea aria-label=${`${w.label} ${c.name}`} ?readonly=${!ed} .value=${live(cur?.content ?? "")}
-              @change=${(e: Event) => saveCell(app, w, s, k, (e.target as HTMLTextAreaElement).value, cur?.important ?? false)}></textarea>
+              @change=${(e: Event) => saveCell(app, w, s, k, { content: (e.target as HTMLTextAreaElement).value })}></textarea>
             ${ed ? html`<button class="star ${cur?.important ? "on" : ""}" title="중요 표시" aria-label="중요 표시"
-              @click=${() => saveCell(app, w, s, k, cur?.content ?? "", !(cur?.important ?? false))}>★</button>` : nothing}</td>`;
+              @click=${() => saveCell(app, w, s, k, { toggleStar: true })}>★</button>` : nothing}</td>`;
         })}</tr>`)}</tbody></table></div>`;
   return html`${head({ crumb: "수업 › 진도", title: `진도 ${cat}`, chips: html`<span class="chip">${weeks.length}주</span>`,
     actions: ed ? html`<button class="btn pri" @click=${() => editWeek(app, cat, null)}>+ 주차 추가</button>` : undefined })}

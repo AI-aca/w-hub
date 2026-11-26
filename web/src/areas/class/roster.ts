@@ -7,11 +7,14 @@ import type { App } from "../../shell/app";
 import { can, centersOf } from "../../shell/app";
 import { head } from "../../shell/layout";
 import { classes, className, type Enr, loadRoster, S } from "./state";
+import { inOrder } from "./busy";
 
 const SC = [["alg", "대수"], ["geo", "기하"], ["com", "조합"]] as const;
 const V = { summary: "people" as "people" | "score", sort: "name", desc: false, showLeft: false };
 
-async function save(app: App, r: Enr, patch: Partial<Enr>): Promise<void> {
+// 같은 학생 줄은 차례로 저장(앞 저장의 새 버전 번호로 보냄)
+const save = (app: App, r: Enr, patch: Partial<Enr>) => inOrder(`ro:${r.student_id}`, () => saveNow(app, r, patch));
+async function saveNow(app: App, r: Enr, patch: Partial<Enr>): Promise<void> {
   const next = { ...r, ...patch };
   try {
     const x = await api<{ ver: number; scores: Enr["scores"] }>("rosterSave", { course_id: S.courseId, ...next });
