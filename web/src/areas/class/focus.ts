@@ -6,13 +6,13 @@ import { errMsg } from "../../shared/ui/ui";
 import type { App } from "../../shell/app";
 import { can } from "../../shell/app";
 import { head } from "../../shell/layout";
-import { f1, sg } from "./evaltext";
+import { f1, pvClass, sg } from "./evaltext";
 import { type Fu, fuDirty, fuForm, logLines, md } from "./followup";
 import { S, staffName, subjName } from "./state";
 import { weeklyDirty } from "./weekly";
 const ver = () => `${weeklyDirty.n}:${fuDirty.n}`;
 
-interface Item { student_id: string; name: string; score: number; avg: number | null; weak?: number | null; weakScore?: number | null; cause?: string }
+interface Item { student_id: string; name: string; score: number; avg: number | null; weak?: number | null; weakScore?: number | null; cause?: string; hope1?: string; h1pv?: string | null; h1m?: number | null }
 interface Win { k: number; upto: number; from: string; to: string; label: string }
 interface FClass { id: number; name: string; homeroom_staff_id: string | null; n: number; focus: Item[]; subjects: { subject_id: number; staff_id: string; items: Item[] }[] }
 interface Resp { wins: Win[]; k: number; win: Win; classes: FClass[]; follows: Fu[]; me_staff: string | null }
@@ -67,8 +67,9 @@ function byClass(app: App, d: Resp): TemplateResult {
     const done = c.focus.filter((r) => d.follows.some((f) => f.student_id === r.student_id)).length;
     return html`<div class="card" style="margin-bottom:12px"><div class="ch"><b>${c.name} 집중관리 대상</b>
       <span class="note">담임 ${staffName(c.homeroom_staff_id) || "미정(설정에서 정함)"} · 조치 ${done} / ${c.focus.length}명</span></div>
-      ${c.focus.length ? html`<div style="overflow:auto"><table class="t fu"><thead><tr><th>학생</th><th class="num">최종 (반 평균 대비)</th><th>취약 과목</th><th class="c">상태</th><th>사후관리 기록 (모든 교사)</th><th></th></tr></thead>
-        <tbody>${rows(app, d, c.focus, (r) => html`<td>${subjName(r.weak ?? null)} <span class="note">${f1(r.weakScore ?? null)}</span></td>`, null, c.homeroom_staff_id, 6)}</tbody></table></div>`
+      ${c.focus.length ? html`<div style="overflow:auto"><table class="t fu"><thead><tr><th>학생</th><th class="num">최종 (반 평균 대비)</th><th>취약 과목</th><th>1지망 판단</th><th class="c">상태</th><th>사후관리 기록 (모든 교사)</th><th></th></tr></thead>
+        <tbody>${rows(app, d, c.focus, (r) => html`<td>${subjName(r.weak ?? null)} <span class="note">${f1(r.weakScore ?? null)}</span></td>
+          <td style="white-space:nowrap">${r.h1pv ? html`<span class="chip ${pvClass(r.h1pv)}">${r.h1pv}</span> <span class="note">${r.hope1}</span>` : html`<span class="note">-</span>`}</td>`, null, c.homeroom_staff_id, 7)}</tbody></table></div>`
         : html`<div class="cb note">${c.n ? "" : "성적 기록이 있는 학생이 없습니다."}</div>`}</div>`;
   })}`;
 }

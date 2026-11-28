@@ -10,12 +10,13 @@ import classRoster from "./areas/class/roster.ts";
 import weekly from "./areas/weekly/actions.ts";
 import weeklyDash from "./areas/weekly/dashboard.ts";
 import weeklyFocus from "./areas/weekly/focus.ts";
+import weeklyReport from "./areas/weekly/report.ts";
 import { type Action, type Ctx, runAction } from "./lib/registry.ts";
 import { Fail } from "./lib/util.ts";
 import { config } from "./lib/config.ts";
 
 const ACTIONS = new Map<string, Action>();
-for (const a of [...core, ...admin, ...students, ...classSetup, ...classTimetable, ...classPlan, ...classRoster, ...weekly, ...weeklyDash, ...weeklyFocus]) {
+for (const a of [...core, ...admin, ...students, ...classSetup, ...classTimetable, ...classPlan, ...classRoster, ...weekly, ...weeklyDash, ...weeklyFocus, ...weeklyReport]) {
   if (ACTIONS.has(a.name)) throw new Error(`액션 이름 중복: ${a.name}`);
   ACTIONS.set(a.name, a);
 }
