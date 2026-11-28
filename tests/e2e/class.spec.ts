@@ -191,7 +191,7 @@ test("성적 권한만 있는 선생님: 평가 화면만, 시간표는 못 봄"
   await loginAs(page, "t2@test.kr", "선생님");
   await page.getByRole("navigation", { name: "메뉴" }).getByRole("link", { name: "수업" }).click();
   await expect(page.getByRole("heading", { name: "성적 입력" })).toBeVisible();
-  await expect(side(page).getByRole("link")).toHaveText(["성적 입력", "입력 현황", "평가 대시보드", "집중관리", "과목 경보"]);
+  await expect(side(page).getByRole("link")).toHaveText(["성적 입력", "입력 현황", "평가 대시보드", "모의고사 성적표", "학생 리포트", "집중관리", "과목 경보"]);
   await expect(page.locator("table.wk tbody tr")).toHaveCount(2);
 });
 

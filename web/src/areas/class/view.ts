@@ -1,5 +1,5 @@
 // 수업(주말반): 왼쪽 = 과정·학기·화면 목록, 오른쪽 = 고른 화면.
-// 주소: #/weiz/class/<학기 id>/<화면>  화면 = overview · tasks · summary · detail · math · science · roster · input · status · dash · focus · alerts · rules · setup
+// 주소: #/weiz/class/<학기 id>/<화면>  화면 = overview · tasks · summary · detail · math · science · roster · input · status · dash · mock · report · focus · alerts · rules · setup
 // 시간표·진도·학생은 '수업' 권한, 평가(성적 입력·입력 현황·평가 설정)는 '성적·주말반' 권한. 둘은 따로 줄 수 있다.
 import { html, nothing, type TemplateResult } from "lit-html";
 import { go, href } from "../../shared/core/route";
@@ -17,6 +17,8 @@ import { statusMain } from "./status";
 import { rulesMain } from "./rules";
 import { dashMain } from "./dash";
 import { focusMain } from "./focus";
+import { reportMain } from "./report";
+import { mockSheetMain } from "./mocksheet";
 import { alertBadge, alertsMain } from "./alerts";
 import { navItem } from "../../shared/ui/icons";
 
@@ -31,6 +33,8 @@ const SCREENS: { key: string; label: string; group: string; icon: string; area: 
   { key: "input", label: "성적 입력", group: "평가", icon: "pencil", area: "scores_weekly", need: "viewer" },
   { key: "status", label: "입력 현황", group: "평가", icon: "bars", area: "scores_weekly", need: "viewer" },
   { key: "dash", label: "평가 대시보드", group: "평가", icon: "trend", area: "scores_weekly", need: "viewer" },
+  { key: "mock", label: "모의고사 성적표", group: "평가", icon: "list", area: "scores_weekly", need: "viewer" },
+  { key: "report", label: "학생 리포트", group: "평가", icon: "doc", area: "scores_weekly", need: "viewer" },
   { key: "focus", label: "집중관리", group: "평가", icon: "target", area: "scores_weekly", need: "viewer" },
   { key: "alerts", label: "과목 경보", group: "평가", icon: "bell", area: "scores_weekly", need: "viewer" },
   { key: "rules", label: "평가 설정", group: "평가", icon: "sliders", area: "scores_weekly", need: "admin" },
@@ -80,6 +84,8 @@ export function classView(app: App): View {
   else if (screen === "status") main = statusMain(app);
   else if (screen === "rules") main = rulesMain(app);
   else if (screen === "dash") main = dashMain(app, p1, p2);
+  else if (screen === "mock") main = mockSheetMain(app, p1, p2);
+  else if (screen === "report") main = reportMain(app, p1, p2);
   else if (screen === "focus") main = focusMain(app);
   else if (screen === "alerts") main = alertsMain(app);
   else main = overviewMain(app);

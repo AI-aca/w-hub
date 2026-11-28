@@ -17,6 +17,8 @@ bash tests/local/db_reset.sh
 (cd tests/server && npx deno test -A -q class_test.ts)
 bash tests/local/db_reset.sh
 (cd tests/server && npx deno test -A -q weekly_test.ts weekly_eval_test.ts weekly_alerts_test.ts)
+bash tests/local/db_reset.sh
+(cd tests/server && npx deno test -A -q weekly_report_test.ts weekly_admit_test.ts)
 echo "== 3-2. 옮겨 오기 시험"
 (cd tools/migrate && npx deno check run.ts && npx deno lint -q)
 bash tests/local/db_reset.sh

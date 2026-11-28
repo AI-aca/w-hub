@@ -15,17 +15,17 @@ import { evalData } from "./dashboard.ts";
 export const KINDS = ["보충수업", "학생 상담", "학부모 상담", "과제 재제출", "기타"];
 const todayKST = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 
-async function sessionsOf(tx: Tx, termId: number): Promise<Session[]> {
+export async function sessionsOf(tx: Tx, termId: number): Promise<Session[]> {
   return await tx`select id::int as id, on_date::text as on_date, start_t, week_label, mock from class.sessions
                   where term_id = ${termId} and kind = 'class'` as unknown as Session[];
 }
 /** 그 학기에 반·과목을 맡은 강사(시간표 상세 칸) */
-async function assignOf(tx: Tx, termId: number) {
+export async function assignOf(tx: Tx, termId: number) {
   return await tx`select distinct c.class_id::int as class_id, c.subject_id::int as subject_id, c.staff_id
                   from class.session_cells c join class.sessions s on s.id = c.session_id
                   where s.term_id = ${termId} and s.kind = 'class' and c.subject_id is not null and c.staff_id is not null`;
 }
-async function followsOf(tx: Tx, termId: number) {
+export async function followsOf(tx: Tx, termId: number) {
   return await tx`select f.id::int as id, f.student_id, f.class_id::int as class_id, f.subject_id::int as subject_id, f.staff_id,
                          coalesce(st.name, '') as staff_name, f.on_date::text as on_date, f.kind, f.body, f.alert_key, f.created_by
                   from class.followups f left join org.staff st on st.id = f.staff_id where f.term_id = ${termId} order by f.on_date, f.id`;
@@ -55,7 +55,11 @@ export default [
       for (const c of classes) {
         const d = await evalData(tx, t.id, t.course_id, c.id as number, w.upto);
         const focus = [...d.list].sort((a, b) => a.final! - b.final!).slice(0, 5)
-          .map((r) => ({ student_id: r.student_id, name: r.name, score: r.final, avg: d.st.final, weak: r.weak, weakScore: r.weak != null ? r.sub[r.weak] : null }));
+          .map((r) => {
+            const h1 = r.h1; // 1지망 판단 칸(원본 r.h1)
+            return { student_id: r.student_id, name: r.name, score: r.final, avg: d.st.final, weak: r.weak, weakScore: r.weak != null ? r.sub[r.weak] : null,
+              hope1: r.hope1, h1pv: h1?.pv ?? null, h1m: h1?.m ?? null };
+          });
         const subjects = assign.filter((a) => a.class_id === c.id).map((a) => ({
           subject_id: a.subject_id as number, staff_id: a.staff_id as string,
           items: d.list.filter((r) => r.sub[a.subject_id] != null).sort((x, y) => x.sub[a.subject_id] - y.sub[a.subject_id]).slice(0, 3)

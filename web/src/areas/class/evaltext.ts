@@ -1,12 +1,15 @@
 // 평가 결과 자료 모양과 '강점·보완할 점' 문구(참고사이트 strengths 와 같은 기준: 반 평균과 ±3점).
 export interface Comp { attendance: number; textbook: number; attitude: number; activity: number; homework: number | null; test: number | null; mock: number | null; nt: number; ded: number; total: number; actN: number }
 export interface Trend { round: number; math: number; sci: number; comp: number }
+/** 커트라인 판단(그룹마다): 학생 최근 모의 3회 평균 − 그룹 안전선 평균 */
+export interface Adm { gi: number; gname: string; cut: number | null; stu: number | null; m: number | null; pv: string | null }
 export interface EvRow {
   student_id: string; name: string; name_no: number; comp: Record<string, Comp>; sub: Record<string, number>;
   math: number | null; sci: number | null; final: number | null; weak: number | null; rank: number;
   note: number; ntM: number; ntS: number; ntBy: { m: Record<string, number>; s: Record<string, number> };
   agg: { att: number | null; hw: number | null; test: number | null; act: number };
   trend: Trend[]; mockMath: number | null; mockSci: number | null; mockRecent: number | null;
+  hope1: string; hope2: string; adm: Adm[]; h1: Adm | null; rec: Adm | null;
 }
 export interface EvStats {
   n: number; sub: Record<string, number | null>; math: number | null; sci: number | null; final: number | null; mockMath: number | null; mockSci: number | null;
@@ -15,7 +18,15 @@ export interface EvStats {
 }
 export interface EvWeek { no: number; label: string; from: string; to: string; mock: boolean; round: number | null }
 export interface EvSubject { id: number; name: string; category: string; sort: number }
-export interface EvResp { rows: EvRow[]; st: EvStats; weeks: EvWeek[]; missingMax: number; subjects: EvSubject[]; cat_weights: Record<string, number>; weights: Record<string, number> }
+export type Cut = Record<string, Record<string, number | null>>;
+export interface EvResp {
+  rows: EvRow[]; st: EvStats; weeks: EvWeek[]; missingMax: number; subjects: EvSubject[]; cat_weights: Record<string, number>; weights: Record<string, number>;
+  cut: Cut; groups: string[]; schools: [string, number][];
+}
+
+/** 판단 글자(안전·근접·소신·도전) → 칩 색 */
+export const pvClass = (pv: string | null | undefined) => pv === "안전" ? "ok" : pv === "근접" ? "info" : pv === "소신" ? "warn" : pv === "도전" ? "bad" : "";
+export const schoolLabel = (n: string) => (n === "한국과학영재학교" ? n + "(부산)" : n);
 
 export const f1 = (v: number | null | undefined) => (v == null || Number.isNaN(v) ? "-" : v.toFixed(1));
 export const sg = (v: number | null | undefined) => (v == null || Number.isNaN(v) ? "" : (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1));
