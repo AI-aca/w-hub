@@ -5,7 +5,7 @@ import { log } from "../../lib/audit.ts";
 import { defineAction } from "../../lib/registry.ts";
 import { termOf } from "../../lib/scope.ts";
 import { fail, str } from "../../lib/util.ts";
-import { type Adm, GROUPS, grpOf, isSchool, recommend } from "../../lib/weekly_admit.ts";
+import { type Adm, GROUPS, grpOf, isSchool, recommend, SCHOOLS } from "../../lib/weekly_admit.ts";
 import { type Session, type Subject, weeksOf } from "../../lib/weekly_eval.ts";
 import { windowsOf } from "../../lib/weekly_focus.ts";
 import { actionPlan, chartNote, fuSummary, hwLetter, mockStats, mockTable, type MockS, pctOf, strengths, summaryText } from "../../lib/weekly_report.ts";
@@ -24,7 +24,7 @@ async function mockWorld(tx: Tx, t: { id: number; course_id: number }) {
   const subjects = await tx`select id::int as id, name, category, sort from class.subjects where course_id = ${t.course_id} order by sort, id` as unknown as Subject[];
   const enr = await tx`select e.student_id, s.name, s.name_no, e.class_id::int as class_id, k.name as class_name, e.hope1, e.hope2
                        from class.enrollments e join people.students s on s.id = e.student_id left join class.classes k on k.id = e.class_id
-                       where e.course_id = ${t.course_id} and e.status = 'active' order by s.name, s.name_no`;
+                       where e.course_id = ${t.course_id} and e.status = 'active' order by k.sort nulls last, s.name, s.name_no`;
   const recs = await tx`select r.session_id::int as session_id, r.student_id, c.subject_id::int as subject_id, r.mock::float as value
                         from class.records r join class.session_cells c on c.session_id = r.session_id and c.class_id = r.class_id
                         join class.sessions s on s.id = r.session_id
@@ -136,7 +136,7 @@ export default [
       }
       return {
         ok: true, wins: kwins, k, win: w, students: d.rows.map((r) => ({ student_id: r.student_id, name: r.name, has: reports.some((x) => x.student_id === r.student_id) })),
-        reports, cut: d.cut, groups: GROUPS, mockCount: W.mockWeeks.length,
+        reports, cut: d.cut, groups: GROUPS, schools: SCHOOLS, mockCount: W.mockWeeks.length,
       };
     },
   }),
@@ -217,7 +217,7 @@ export default [
         };
       }).sort((a, b) => (b.conv ?? -1) - (a.conv ?? -1));
       return {
-        ok: true, rounds: W.rounds, round, subjects: W.subjects.filter((s) => s.category !== "기타"), max: S.max, mx: S.mx, sx: S.sx, cnt: S.cnt, rows,
+        ok: true, convMax: { m: 200 * W.cw.m / (W.cw.m + W.cw.s), s: 200 * W.cw.s / (W.cw.m + W.cw.s) }, rounds: W.rounds, round, subjects: W.subjects.filter((s) => s.category !== "기타"), max: S.max, mx: S.mx, sx: S.sx, cnt: S.cnt, rows,
         avg: { sub: Object.fromEntries(W.subjects.map((s) => [s.id, S.sub[s.id].avg])), ms: S.ms.avg, ss: S.ss.avg, tot: S.tot.avg, cm: S.cm.avg, cs: S.cs.avg, conv: S.conv.avg },
       };
     },
@@ -257,7 +257,7 @@ export default [
         { name: "학생", rows: [["이름", "반", "센터", "학교", "입학연도", "1지망", "2지망", "비고"],
           ...stu.map((s) => [s.name, s.class_name ?? "", s.center ?? "", s.school_name, num(s.entry_year), s.hope1, s.hope2, s.note])] },
         { name: "성적기록", rows: [["주차", "날짜", "반", "학생", "과목", "출결", "교재 미지참", "태도 지적", "노트 미흡", "과제", "발표", "테스트", "모의고사 원점수"],
-          ...records.map((r) => [r.mock ? `${r.week_label} (모의)` : r.week_label, r.on_date, r.class_name, r.name_no ? `${r.student}${r.name_no}` : r.student, subj.get(r.subject_id as number) ?? "",
+          ...records.filter((r) => r.att != null || r.book === true || r.beh != null || r.nt != null || r.hw != null || r.act != null || r.test != null || r.mock != null).map((r) => [r.mock ? `${r.week_label} (모의)` : r.week_label, r.on_date, r.class_name, r.name_no ? `${r.student}${r.name_no}` : r.student, subj.get(r.subject_id as number) ?? "",
             r.att ?? "출석", r.book ? 1 : "", num(r.beh), num(r.nt), r.hw ?? "", num(r.act), num(r.test), num(r.mock)])] },
         { name: "모의고사", rows: [["회차", "반", "학생", ...W.subjects.map((s) => s.name), "수학", "과학", "총점", "환산 수학", "환산 과학", "환산 총점"], ...mockRows] },
         { name: "사후관리", rows: [["날짜", "반", "학생", "과목", "유형", "교사", "내용"],

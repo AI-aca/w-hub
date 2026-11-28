@@ -44,21 +44,16 @@ const ymd = (m, d) => `${Y}-${pad(m)}-${pad(d)}`;
 const nextDay = (m, d) => { const t = new Date(Date.UTC(Y, m - 1, d + 1)); return [t.getUTCMonth() + 1, t.getUTCDate()]; };
 
 let fails = 0, checks = 0;
-const eq = (a, b, what, tol = 1e-9) => {
+const eq = (a, b, what, tol = 0) => { // 표시 글자까지 같아야 하므로 숫자도 한 비트도 다르면 안 된다
   checks++;
   const ok = (a == null && b == null) || (typeof a === "number" && typeof b === "number" && Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b))) || a === b;
   if (!ok) { fails++; if (fails < 25) console.log("차이:", what, "원본=", a, "W-HUB=", b); }
 };
 
-let boundary = 0;
-// 글 비교: 같으면 통과. 다르면 숫자(소수 첫째 자리)가 서로 0.1 이내이고 나머지 글자가 같을 때만 '반올림 경계'로 센다(부동소수 잡음, 계산값은 1e-9 이내로 같음).
+// 글 비교: 한 글자도 다르면 안 된다.
 const eqText = (a, b, what) => {
   checks++;
   if (a === b) return;
-  const num = /-?\d+\.\d/g;
-  const sa = a.replace(num, "#"), sb = b.replace(num, "#");
-  const na = (a.match(num) ?? []).map(Number), nb = (b.match(num) ?? []).map(Number);
-  if (sa === sb && na.length === nb.length && na.every((x, i) => Math.abs(x - nb[i]) <= 0.1 + 1e-9)) { boundary++; return; }
   fails++; if (fails < 25) console.log("차이:", what, "| 원본=", a, "| W-HUB=", b);
 };
 const BUNDLES = Number(process.argv[3] ?? 6);
@@ -90,6 +85,8 @@ for (let bundle = 0; bundle < BUNDLES; bundle++) {
   // 학생
   const students = [];
   for (let i = 0; i < ri(18, 30); i++) students.push({ id: "s" + i, student_id: "s" + i, name: "학생" + pad(i), name_no: 0, plan: pick(["A", "B", "C"]), cur: pick(["가", "나"]), hope1: rnd() < 0.7 ? pick(SCHOOL_NAMES) : "", hope2: rnd() < 0.5 ? pick(SCHOOL_NAMES) : "" });
+  // 합산 순서를 같게: 반 → 이름 순(W-HUB 는 수강생을 이 순서로 합산, 원본은 입력 순서라 같은 순서를 주었다)
+  students.sort((x, y) => x.plan.localeCompare(y.plan) || x.name.localeCompare(y.name));
   // 기록 (W-HUB 형식) + 원본 문서
   const whRecs = []; const docs = {};
   const putDoc = (n, cls, field, v) => { const id = `n${n}_${cls}`; (docs[id] = docs[id] || { n, cls })[field] = v; };
@@ -156,6 +153,7 @@ for (let bundle = 0; bundle < BUNDLES; bundle++) {
         const or = oe.by[nr.student_id];
         for (const sb of subjects) eq(or.sub[sb.name], nr.sub[sb.id] ?? null, `${tag} ${nr.name} ${sb.name} 종합`);
         for (const k of ["math", "sci", "final", "mockMath", "mockSci", "mockRecent", "note", "ntM", "ntS", "rank"]) eq(or[k] ?? null, nr[k] ?? null, `${tag} ${nr.name} ${k}`);
+        eq(JSON.stringify(Object.keys(or.raw).map(Number)), JSON.stringify(Object.keys(nr.raw).map(Number)), `${tag} ${nr.name} raw 회차(수학·과학 둘 다 있는 회차만)`);
         eq(or.weak, nr.weak ? nameOf[nr.weak] : "", `${tag} ${nr.name} weak`);
         eq(or.trend.length, nr.trend.length, `${tag} ${nr.name} trend 길이`);
         or.trend.forEach((t, i) => { for (const k of ["round", "math", "sci", "comp"]) eq(t[k], nr.trend[i]?.[k], `${tag} ${nr.name} trend ${k}`); });
@@ -230,5 +228,5 @@ for (let bundle = 0; bundle < BUNDLES; bundle++) {
     }
   }
 }
-console.log(`확인 ${checks}건, 차이 ${fails}건 (소수 첫째 자리 반올림 경계 ${boundary}건은 별도)`);
+console.log(`확인 ${checks}건, 차이 ${fails}건 (숫자는 비트 단위, 글자는 한 글자 단위로 비교)`);
 process.exit(fails ? 1 : 0);

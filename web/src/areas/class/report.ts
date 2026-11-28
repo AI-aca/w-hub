@@ -9,7 +9,7 @@ import type { App } from "../../shell/app";
 import { can } from "../../shell/app";
 import { head } from "../../shell/layout";
 import { barsChart, trendFromSeries } from "./charts";
-import { type Adm, f1, pvClass, sg } from "./evaltext";
+import { type Adm, f1, pvClass, schoolLabel, sg } from "./evaltext";
 import { track } from "./busy";
 import { classes, S } from "./state";
 import { weeklyDirty } from "./weekly";
@@ -28,7 +28,7 @@ interface Rep {
   care: string | null; plan: Plan[]; hopeG: [number | null, number | null];
 }
 interface Win { k: number; upto: number; from: string; to: string; label: string }
-interface Resp { wins: Win[]; k: number; win: Win | null; students: { student_id: string; name: string; has: boolean }[]; reports: Rep[]; groups: string[]; mockCount: number }
+interface Resp { wins: Win[]; k: number; win: Win | null; students: { student_id: string; name: string; has: boolean }[]; reports: Rep[]; groups: string[]; schools: [string, number][]; mockCount: number }
 
 const R = { key: "", dirty: -1, data: null as Resp | null, err: "", sid: "", all: false };
 
@@ -58,8 +58,9 @@ export function reportMain(app: App, cPart?: string, kPart?: string): TemplateRe
   if (R.key !== key || R.dirty !== weeklyDirty.n) void load(app, key, c.id, kq);
   const d = R.key === key ? R.data : null;
   const to = (cid: number, k = 0) => go(app.ws, "class", String(S.termId), "report", String(cid), ...(k ? [String(k)] : []));
-  const sel = d ? d.reports.find((r) => r.student_id === R.sid) ?? d.reports[0] : undefined;
-  if (sel) R.sid = sel.student_id;
+  // 모의 성적 없는 학생을 골라도 선택을 풀지 않는다(안내 문구를 보여 줌). 반이 바뀌어 없는 학생일 때만 첫 학생으로.
+  if (d && !d.students.some((s) => s.student_id === R.sid)) R.sid = d.reports[0]?.student_id ?? d.students[0]?.student_id ?? "";
+  const sel = d?.reports.find((r) => r.student_id === R.sid);
   return html`${head({ crumb: "수업 › 평가", title: "학생 리포트",
     chips: html`<div class="seg" role="tablist" aria-label="반">${cls.map((x) => html`<button role="tab" class=${x.id === c.id ? "on" : ""} @click=${() => to(x.id, kq)}>${x.name}</button>`)}</div>`,
     actions: d?.reports.length ? html`<button class="btn" @click=${() => print(app, false)}>인쇄·PDF (이 학생)</button><button class="btn" @click=${() => print(app, true)}>반 전체 인쇄·PDF</button>` : undefined })}
@@ -75,14 +76,14 @@ function body(app: App, d: Resp, classId: number, cname: string, sel: Rep | unde
     <select class="sel" style="width:auto;min-width:160px" aria-label="학생" @change=${(e: Event) => { R.sid = (e.target as HTMLSelectElement).value; app.redraw(); }}>
       ${d.students.map((s) => html`<option value=${s.student_id} ?selected=${s.student_id === R.sid}>${s.name}${s.has ? "" : " (모의 성적 없음)"}</option>`)}</select>
     <span class="note">${k}차 리포트 = 모의 ${3 * k}회까지의 성적 기준 · 기간 ${w.label}</span></div>
-  ${sel ? html`<div class="rp-one">${sheet(sel, cname, k, ed, () => app.redraw())}</div>`
+  ${sel ? html`<div class="rp-one">${sheet(sel, cname, k, ed, () => app.redraw(), d.schools)}</div>`
     : html`<div class="card"><div class="empty">${d.students.length ? `모의고사 ${3 * k}회 성적이 입력되면 ${k}차 리포트가 만들어집니다.` : "이 반에 수강생이 없습니다."}</div></div>`}
-  ${R.all ? html`<div class="rp-all">${d.reports.map((r) => sheet(r, cname, k, false, () => app.redraw()))}</div>` : nothing}`;
+  ${R.all ? html`<div class="rp-all">${d.reports.map((r) => sheet(r, cname, k, false, () => app.redraw(), d.schools))}</div>` : nothing}`;
 }
 
 const kpiCls = (v: number | null, c: number | null) => v == null || c == null ? "" : v - c >= 0 ? "p" : "n";
 
-function sheet(r: Rep, cname: string, k: number, editable: boolean, redraw: () => void): TemplateResult {
+function sheet(r: Rep, cname: string, k: number, editable: boolean, redraw: () => void, schools: [string, number][]): TemplateResult {
   const a = 3 * k - 2, b = 3 * k;
   const term = S.meta?.terms.find((t) => t.id === S.termId)?.name ?? "";
   const course = S.meta?.courses.find((x) => x.id === S.courseId)?.name ?? "";
@@ -115,7 +116,7 @@ function sheet(r: Rep, cname: string, k: number, editable: boolean, redraw: () =
     <h3 class="rp-h"><span class="dot">2</span>모의고사 성적표 <small>${a}~${b}회 · 과목별 원점수 · 평균 · 백분위</small></h3>
     ${mockTable(r.mock)}
     <h3 class="rp-h"><span class="dot">3</span>지원 가능 영재학교 <small>최근 모의고사 3회 · 우리 판단 ${r.rec ? `${r.rec.gname} (${r.rec.pv})` : "-"}</small></h3>
-    ${admTable(r)}
+    ${admTable(r, schools)}
     <p class="note">커트라인은 합격 안전선(합격률 80% 이상)입니다. 안전선에 못 미쳐도 합격할 수 있습니다. 안전: 안전선 이상 · 근접: −10점 이내 · 소신: −20점 이내 · 도전: 그 아래</p>
     <h3 class="rp-h"><span class="dot">4</span>과목별 성취 <small>과목 종합점수 · 점선 반 평균</small></h3>
     <div class="rp-card">${barsChart(r.bars)}</div>
@@ -146,9 +147,9 @@ function mockTable(ms: MockTable[]): TemplateResult {
       <tr class="sumr cv"><td><b>환산 총점</b></td>${ms.map((m) => mockCell(m.conv, true, true))}</tr></tbody></table>
     <p class="note">환산 총점 = 수학 100환산 × 비율 + 과학 100환산 × 비율 (200점 만점, 기본 수학 60 : 과학 40) · 평균·백분위는 수강생 전체 기준</p>`;
 }
-function admTable(r: Rep): TemplateResult {
+function admTable(r: Rep, schools: [string, number][]): TemplateResult {
   return html`<table class="t rp-t"><thead><tr><th>커트라인 그룹 (영재학교)</th><th class="num">안전선 평균</th><th class="num">학생 평균</th><th class="num">차이</th><th>판단</th><th>지망</th></tr></thead>
-    <tbody>${r.adm.map((a) => html`<tr><td><b>${a.gname}</b></td><td class="num">${f1(a.cut)}</td><td class="num">${f1(a.stu)}</td>
+    <tbody>${r.adm.map((a) => html`<tr><td><b>${a.gname}</b> <span class="note">${schools.filter((x) => x[1] === a.gi).map((x) => schoolLabel(x[0])).join(" · ")}</span></td><td class="num">${f1(a.cut)}</td><td class="num">${f1(a.stu)}</td>
       <td class="num" style=${a.m == null ? "" : a.m >= 0 ? "color:var(--ok);font-weight:800" : "color:var(--warn);font-weight:800"}>${a.m == null ? "-" : sg(a.m)}</td>
       <td>${a.pv ? html`<span class="chip ${pvClass(a.pv)}">${a.pv}</span>` : html`<span class="note">-</span>`}</td>
       <td style="white-space:nowrap">${r.hopeG[0] === a.gi ? html`<span class="chip info">1지망</span>` : nothing} ${r.hopeG[1] === a.gi ? html`<span class="chip">2지망</span>` : nothing}</td></tr>`)}</tbody></table>`;

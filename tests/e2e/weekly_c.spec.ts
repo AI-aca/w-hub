@@ -97,10 +97,15 @@ test("커트라인·1지망: 평가 대시보드에 입력하고 판단이 붙�
   await expect(page.locator(".card", { hasText: "회차별 모의고사 커트라인" })).toBeVisible();
   const cut = (round: number, g: string) => page.getByLabel(`${round}회 ${g} 커트라인`);
   // 모의 종합 200점 환산 최근 3회 평균 기준: 그룹0 안전선 150~160, 그룹1 140
-  for (const [r, v] of [[4, "150"], [5, "155"], [6, "160"]] as [number, string][]) { await cut(r, "서울·경기·한과영").fill(v); await cut(r, "서울·경기·한과영").press("Tab"); await expect(page.getByText("커트라인을 저장했습니다.").first()).toBeVisible(); }
-  await cut(6, "인천·대구").fill("140"); await cut(6, "인천·대구").press("Tab");
+  // 칸 하나를 고치고 서버 응답이 올 때까지 기다린 뒤 다음 칸으로(토스트 글자는 겹쳐 보여 기준이 못 됨)
+  const put = async (r: number, g: string, v: string) => {
+    await cut(r, g).fill(v);
+    await Promise.all([page.waitForResponse((res) => (res.request().postData() ?? "").includes('"cutSave"')), cut(r, g).press("Tab")]);
+  };
+  for (const [r, v] of [[4, "150"], [5, "155"], [6, "160"]] as [number, string][]) await put(r, "서울·경기·한과영", v);
+  await put(6, "인천·대구", "140");
   await expect(cut(6, "인천·대구")).toHaveValue("140");
-  await cut(6, "서울·경기·한과영").fill("999"); await cut(6, "서울·경기·한과영").press("Tab");
+  await put(6, "서울·경기·한과영", "999");
   await expect(page.getByText("커트라인은 0~200점 사이로 입력하세요.").first()).toBeVisible();
   await expect(cut(6, "서울·경기·한과영")).toHaveValue("160"); // 거절되면 다시 불러온 값
   // 학생 상세에서 1지망 고르기 → 표의 '1지망 판단' 칸·KPI

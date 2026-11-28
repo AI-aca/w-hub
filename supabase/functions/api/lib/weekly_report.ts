@@ -137,11 +137,14 @@ export function mockStats(p: {
   students: Iterable<string>; subjects: Subject[]; recs: { student_id: string; subject_id: number; value: number }[];
   max: Record<number, number | null>; cw: { m: number; s: number };
 }): MockS {
-  const ids = new Set(p.students);
+  const order = [...p.students]; // 합산 순서 = 수강생 순서(원본은 입력 순서라 실자료에서 완전히 같을 수는 없고, 같은 순서를 주면 같은 글자가 나온다)
+  const ids = new Set(order);
   const math = p.subjects.filter((s) => s.category === "수학"), sci = p.subjects.filter((s) => s.category === "과학");
   const known = new Set(p.subjects.map((s) => s.id));
+  const got: MockS["by"] = {};
+  for (const x of p.recs) if (ids.has(x.student_id) && known.has(x.subject_id) && Number.isFinite(x.value)) (got[x.student_id] = got[x.student_id] ?? {} as MockS["by"][string])[x.subject_id] = x.value;
   const by: MockS["by"] = {};
-  for (const x of p.recs) if (ids.has(x.student_id) && known.has(x.subject_id) && Number.isFinite(x.value)) (by[x.student_id] = by[x.student_id] ?? {} as MockS["by"][string])[x.subject_id] = x.value;
+  for (const sid of order) if (got[sid]) by[sid] = got[sid];
   const sumMax = (xs: Subject[]) => xs.every((s) => p.max[s.id] != null) ? xs.reduce((a, s) => a + p.max[s.id]!, 0) : null;
   const mx = sumMax(math), sx = sumMax(sci);
   const fm = 2 * p.cw.m / (p.cw.m + p.cw.s), fs = 2 * p.cw.s / (p.cw.m + p.cw.s);

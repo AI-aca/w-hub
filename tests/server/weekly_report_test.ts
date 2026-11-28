@@ -127,6 +127,7 @@ Deno.test({ name: "학생 리포트: 차수·성적표(평균·백분위)·지�
   const d = (await W(viewer, "reportData", { term_id: I.term, class_id: I.A, k: 1 })).json;
   eq([d.wins.length, d.k, d.mockCount, d.reports.length], [1, 1, 3, 3]);
   eq(d.wins[0].upto, 3, "1차 = 모의 3회(3주차)까지");
+  eq(d.schools.length, 8, "리포트 지원 가능 표의 학교 이름 줄용");
   const r = (n: string) => d.reports.find((x: J) => x.student_id === I[n]);
   const ga = r("가학생");
   eq([ga.rank, ga.n, ga.hope1, ga.hopeG], [1, 3, "서울과학고", [0, null]]);
@@ -194,6 +195,7 @@ Deno.test({ name: "모의고사 성적표: 회차·반 거르기, 석차", ...op
   eq((await W(onlyClass, "mockSheet", { term_id: I.term })).status, 403);
   const d = (await W(viewer, "mockSheet", { term_id: I.term, round: 2 })).json;
   eq([d.round, d.rounds.map((x: J) => [x.round, x.has]), d.cnt, d.mx, d.sx], [2, [[1, true], [2, true], [3, true]], 3, 40, 30]);
+  eq(d.convMax, { m: 120, s: 80 }, "환산 만점은 수학:과학 비율(60:40)에서 계산");
   eq(d.rows.map((x: J) => [x.rank, x.pconv]), [[1, 83], [2, 50], [3, 17]], "환산 총점 높은 순");
   near(d.avg.conv, (200 + 154 + 100) / 3, "평균");
   eq(d.rows[0].v[I.mathSub], 40);
@@ -214,6 +216,12 @@ Deno.test({ name: "엑셀 백업 자료: 시트 6개, 연락처 없음, 권한",
   eq(JSON.stringify(d).includes("010-1111-2222") || JSON.stringify(d).includes("010-3333-4444"), false, "연락처는 백업에 넣지 않음");
   eq(sh("학생").find((r: J) => r[0] === "나학생").slice(5), ["경기과학고", "인천과학예술영재학교", ""]);
   eq(sh("성적기록").length, 1 + 18, "회차 3 × 학생 3 × 과목 2");
+  // 칸을 전부 지워 값이 하나도 없는 기록 줄은 백업에 넣지 않는다(출석으로 둔갑 방지)
+  const c1 = { session_id: I.sess[0].math, class_id: I.A, student_id: I["가학생"] };
+  await W(tch, "recordSave", { ...c1, field: "mock", value: "" });
+  const d2 = (await W(viewer, "weeklyBackup", { term_id: I.term })).json;
+  eq(d2.sheets.find((s: J) => s.name === "성적기록").rows.length, 1 + 17, "값이 하나도 없는 줄은 뺌");
+  await W(tch, "recordSave", { ...c1, field: "mock", value: 40 });
   eq(sh("성적기록")[0].slice(0, 5), ["주차", "날짜", "반", "학생", "과목"]);
   eq(sh("성적기록")[1].slice(0, 6), ["1주 (모의)", "2026-09-05", "A반", "가학생", "대수", "출석"]);
   eq(sh("모의고사")[0].slice(0, 5), ["회차", "반", "학생", "대수", "물리"]);

@@ -83,7 +83,11 @@ export function evaluate(inp: Input) {
       if (mx) { a.max.set(n, mx); a.mock.set(n, r.mock / mx * 100); } else { a.mock.delete(n); a.max.delete(n); missingMax++; }
     }
   }
-  const W = rules.weights, cw = { m: Number(rules.cat_weights[MATH] ?? 60), s: Number(rules.cat_weights[SCI] ?? 40) };
+  // 가중치·비율은 원본처럼 소수로 곱한다(5 → 0.05, 60:40 → 0.6·0.4, 모의 환산 ×1.2·×0.8). 같은 식·같은 순서여야 표시 글자까지 원본과 같다(문서 50 4절).
+  const W = Object.fromEntries(Object.entries(rules.weights).map(([k, v]) => [k, Number(v) / 100]));
+  const cw = { m: Number(rules.cat_weights[MATH] ?? 60), s: Number(rules.cat_weights[SCI] ?? 40) };
+  const fm = cw.m / (cw.m + cw.s), fs = cw.s / (cw.m + cw.s); // 최종 = 수학×fm + 과학×fs
+  const fm2 = 2 * cw.m / (cw.m + cw.s), fs2 = 2 * cw.s / (cw.m + cw.s); // 모의 종합(200점) = 수학%×fm2 + 과학%×fs2
   const ordered = [...subjects].sort((a, b) => a.sort - b.sort || a.id - b.id);
   const rows: Row[] = inp.students.map((s) => {
     const r: Row = { student_id: s.student_id, name: s.name, name_no: s.name_no, comp: {}, sub: {}, math: null, sci: null, final: null, weak: null, rank: 0,
@@ -114,25 +118,26 @@ export function evaluate(inp: Input) {
     r.agg.att = mean(att); r.agg.hw = mean(hw); r.agg.test = mean(test);
     const catMean = (cat: string) => mean(ordered.filter((x) => x.category === cat && r.sub[x.id] != null).map((x) => r.sub[x.id]));
     r.math = catMean(MATH); r.sci = catMean(SCI);
-    r.final = r.math != null && r.sci != null ? (r.math * cw.m + r.sci * cw.s) / (cw.m + cw.s) : (r.math ?? r.sci);
+    r.final = r.math != null && r.sci != null ? r.math * fm + r.sci * fs : (r.math ?? r.sci);
     const av = ordered.filter((x) => r.sub[x.id] != null);
     r.weak = av.length ? av.reduce((p, q) => r.sub[p.id] <= r.sub[q.id] ? p : q).id : null;
     // 모의 종합(200점): 같은 회차에 수학·과학이 둘 다 있을 때만
     for (const w of weeks.filter((x) => x.mock)) {
       const raw: Record<number, number> = {};
-      let mr = 0, mx = 0, sr = 0, sx = 0;
+      let mr = 0, mx = 0, sr = 0, sx = 0, hasM = false, hasS = false;
       for (const sb of ordered) {
         const a = acc.get(s.student_id)?.get(sb.id);
         const v = a?.raw.get(w.no), m = a?.max.get(w.no);
         if (v == null) continue;
         raw[sb.id] = v;
+        if (sb.category === MATH) hasM = true; else if (sb.category === SCI) hasS = true;
         if (m == null) continue;
         if (sb.category === MATH) { mr += v; mx += m; } else if (sb.category === SCI) { sr += v; sx += m; }
       }
-      if (Object.keys(raw).length) r.raw[w.round!] = raw;
+      if (hasM && hasS) r.raw[w.round!] = raw; // 원본: 수학·과학 원점수가 둘 다 있는 회차만 리포트 성적표 열이 된다
       if (mx && sx) {
         const a = mr / mx * 100, b = sr / sx * 100;
-        r.trend.push({ round: w.round!, math: a, sci: b, comp: 2 * (a * cw.m + b * cw.s) / (cw.m + cw.s) });
+        r.trend.push({ round: w.round!, math: a, sci: b, comp: a * fm2 + b * fs2 });
       }
     }
     r.mockMath = mean(r.trend.map((t) => t.math)); r.mockSci = mean(r.trend.map((t) => t.sci));

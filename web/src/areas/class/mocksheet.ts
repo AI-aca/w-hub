@@ -18,7 +18,7 @@ interface Row {
 }
 interface Resp {
   rounds: { round: number; date: string; label: string; has: boolean }[]; round: number; subjects: { id: number; name: string; category: string }[];
-  max: Record<string, number | null>; mx: number | null; sx: number | null; cnt: number; rows: Row[];
+  max: Record<string, number | null>; convMax: { m: number; s: number }; mx: number | null; sx: number | null; cnt: number; rows: Row[];
   avg: { sub: Record<string, number | null>; ms: number | null; ss: number | null; tot: number | null; cm: number | null; cs: number | null; conv: number | null };
 }
 const M = { key: "", dirty: -1, data: null as Resp | null, err: "" };
@@ -58,7 +58,7 @@ function body(d: Resp): TemplateResult {
     <th class="num">총점</th><th class="num">환산 수학</th><th class="num">환산 과학</th><th class="num">환산 총점</th><th class="num">백분위</th><th class="num">석차</th></tr></thead>
   <tbody>
     <tr class="sub-h"><td>만점</td>${math.map((s) => html`<td class="num">${mk(s.id) ?? "-"}</td>`)}<td class="num">${d.mx ?? "-"}</td><td></td>${sci.map((s) => html`<td class="num">${mk(s.id) ?? "-"}</td>`)}<td class="num">${d.sx ?? "-"}</td><td></td>
-      <td class="num">${d.mx != null && d.sx != null ? d.mx + d.sx : "-"}</td><td class="num">120</td><td class="num">80</td><td class="num">200</td><td></td><td></td></tr>
+      <td class="num">${d.mx != null && d.sx != null ? d.mx + d.sx : "-"}</td><td class="num">${f1(d.convMax.m)}</td><td class="num">${f1(d.convMax.s)}</td><td class="num">200</td><td></td><td></td></tr>
     <tr class="sub-h"><td>평균 (${d.cnt}명)</td>${math.map((s) => html`<td class="num">${f1(d.avg.sub[String(s.id)])}</td>`)}<td class="num">${f1(d.avg.ms)}</td><td></td>${sci.map((s) => html`<td class="num">${f1(d.avg.sub[String(s.id)])}</td>`)}<td class="num">${f1(d.avg.ss)}</td><td></td>
       <td class="num">${f1(d.avg.tot)}</td><td class="num">${f1(d.avg.cm)}</td><td class="num">${f1(d.avg.cs)}</td><td class="num">${f1(d.avg.conv)}</td><td></td><td></td></tr>
     ${d.rows.length ? d.rows.map((r) => html`<tr><td style="white-space:nowrap"><b>${r.name}</b> <span class="note">${r.class_name ?? ""}</span></td>
