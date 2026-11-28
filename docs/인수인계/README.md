@@ -8,7 +8,7 @@
 2. 이 문서의 '지금 상태'
 3. `41_중간정리.md` → `38_남은작업_계획.md` → `../계획서.md`(문서 31, 저장소 판이 최신: 11-21 변경 기록·4-6 실제 구조 포함)
 4. 일하는 단계의 대조표: `46_3-2A_원본대조표.md`, `47_3-2B_원본대조표.md` (새 단계도 이 방식으로 먼저 대조표를 만든다)
-5. `45_원장님결정.md`(보류 기능·권한), `48_과학고외고_변경확인.md`(과학고·외고 운영 사이트)
+5. `45_원장님결정.md`(보류 기능·권한), `48_과학고외고_변경확인.md`·`49_과학고외고_변경확인2.md`(과학고·외고 운영 사이트)
 
 | 파일 | 원본(claude.ai 프로젝트 문서) |
 |---|---|
@@ -19,6 +19,7 @@
 | 46_3-2A_원본대조표.md | 46 3단계 2차 A 참고사이트 원본 대조표 |
 | 47_3-2B_원본대조표.md | 47 3단계 2차 B 원본 대조표·설계 |
 | 48_과학고외고_변경확인.md | 48 과학고·외고 11-25 변경 확인 (GitHub 기준) |
+| 49_과학고외고_변경확인2.md | (저장소 작성, 2026-11-28) 48 이후 변경: 자기소개서 탭 '선생님 수정' 열 등, 해시 대조 |
 
 ## 지금 상태 (2026-11-26)
 | 단계 | 내용 | 상태 |
@@ -31,11 +32,12 @@
 | 3-2 B2·B3 | 집중관리·조치 기록·과목 경보·반 담임·저장 중 창 닫기 경고 | DB(0008)·서버 함수 실서버 적용 완료. 화면은 커밋 87c09ce, GitHub 시험에서 한 번 실패(아래) → 고친 판과 함께 업로드 |
 | 고침 | 같은 줄 저장은 차례로(업무 일정·진도 칸·반편성). 느린 서버 시험 추가 | 커밋 f96ad43 |
 | 문서 | 과학고·외고 11-25 변경을 기능 목록에 반영(17개 예정) | 커밋 c4eec5f |
+| 문서 | 48 이후 변경(선생님 수정 열 등) 4개 예정 항목 추가(합계 21개) | 문서 49 |
 | **3-2 C** | 커트라인·1지망·지원 가능 판단, 학생 리포트(사후관리 한 줄 포함), 엑셀 백업, 차수별 모의 회차 | **다음** |
 | 4~11 | 모의고사 → 내신·분석 → 입시(와이즈만) → 입시(연세) → 연세 온라인 진단(GAS→Supabase) → 학생 화면·홈 → 블로그 → 옛 사이트 정리 | 예정(38번 문서) |
 
 ## 원장님 답을 기다리는 것
-- YONSEIIE `ps_annotations` 표(과학고·외고 첨삭 색·메모)에만 anon·authenticated 의 TRUNCATE 권한이 남아 있음. 다른 20개 표와 맞추려면 `revoke truncate on public.ps_annotations, science.ps_annotations from anon, authenticated;` — **승인 전에는 하지 않는다**(기존 운영 DB).
+- YONSEIIE TRUNCATE 권한(2026-11-28 pg 시스템 표 aclexplode 로 재확인, 문서 49): `ps_annotations`(public·science 둘 다)에 anon·authenticated 의 TRUNCATE 가 **아직 남아 있음**. public 의 `interview_common_question_schools`·`interview_common_questions` 에도 있음. RLS 는 두 `ps_annotations` 모두 켜짐. (11-26 "0건" 조회는 information_schema 를 쓴 것으로 보이며, 그 뷰는 TRUNCATE 를 보여주지 않음 — 미확인, W-HUB 총괄 확인 필요.) 맞추려면 `revoke truncate on public.ps_annotations, science.ps_annotations from anon, authenticated;` — **승인 전에는 하지 않는다**(기존 운영 DB).
 
 ## 실서버 정보 (비밀 아님)
 - 화면: https://ai-aca.github.io/w-hub/ (저장소 AI-aca/w-hub, main → GitHub Actions: test → build-pages → deploy)
